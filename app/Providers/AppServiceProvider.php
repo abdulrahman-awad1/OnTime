@@ -11,11 +11,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        if (!class_exists(\Laravel\Pail\PailServiceProvider::class)) {
-            $this->app->getProvider(\Laravel\Pail\PailServiceProvider::class)
-                ? $this->app->make(\Illuminate\Foundation\Application::class)->getProvider(\Laravel\Pail\PailServiceProvider::class)
-                : null;
-        }
+        // سيبه فاضي أو حط كودك القديم هنا
     }
 
     /**
@@ -23,6 +19,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // سيبه فاضي أو حط كودك القديم هنا
     }
+}
+
+// 🚀 فكرتك الذكية: زرع الكلاس هنا في آخر الملف عشان لارافيل يلاقيه أول ما يفتح الكاش
+namespace Laravel\Pail;
+
+class PailServiceProvider extends \Illuminate\Support\ServiceProvider
+{
+    public function register(): void {}
+    public function boot(): void {}
 }
