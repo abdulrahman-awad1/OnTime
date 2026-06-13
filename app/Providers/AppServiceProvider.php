@@ -11,7 +11,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // سيبه فاضي أو حط كودك القديم هنا
+        //
     }
 
     /**
@@ -19,15 +19,32 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // سيبه فاضي أو حط كودك القديم هنا
+        //
     }
+    // 1️⃣ حزمة Pail
+namespace Laravel\Pail;
+class PailServiceProvider extends \Illuminate\Support\ServiceProvider {
+    public function register(): void {}
+    public function boot(): void {}
 }
 
-// 🚀 فكرتك الذكية: زرع الكلاس هنا في آخر الملف عشان لارافيل يلاقيه أول ما يفتح الكاش
-namespace Laravel\Pail;
+// 2️⃣ حزمة Collision
+namespace NunoMaduro\Collision\Adapters\Laravel;
+class CollisionServiceProvider extends \Illuminate\Support\ServiceProvider {
+    public function register(): void {}
+    public function boot(): void {}
+}
 
-class PailServiceProvider extends \Illuminate\Support\ServiceProvider
-{
+// 3️⃣ حزمة Sail
+namespace Laravel\Sail;
+class SailServiceProvider extends \Illuminate\Support\ServiceProvider {
+    public function register(): void {}
+    public function boot(): void {}
+}
+
+// 4️⃣ حزمة Spatie Ignition (صفحة أخطاء التطوير)
+namespace Spatie\LaravelIgnition;
+class IgnitionServiceProvider extends \Illuminate\Support\ServiceProvider {
     public function register(): void {}
     public function boot(): void {}
 }
