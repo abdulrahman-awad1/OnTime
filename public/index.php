@@ -19,7 +19,10 @@ if (file_exists(__DIR__.'/../app/PailStub.php')) {
 $app = require_once __DIR__.'/../bootstrap/app.php';
 
 
-// 🚀 الضربة القاضية: لو الـ view مش متسجل في الحاوية بسبب الكاش، سجله فوراً بقوة القانون
+// 🚀 الضربة القاضية: إجبار الحاوية على شحن الخدمات الأساسية (Files, View, Routing) لو الكاش أعمى عنها
+if (!$app->bound('files')) {
+    $app->register(\Illuminate\Filesystem\FilesystemServiceProvider::class);
+}
 if (!$app->bound('view')) {
     $app->register(\Illuminate\View\ViewServiceProvider::class);
 }
