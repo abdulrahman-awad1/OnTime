@@ -17,13 +17,8 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('password');
             $table->string('phone')->unique();
-            $table->enum('role', ['admin', 'doctor', 'patient', 'receptionist'])->default('patient');
-            $table->date('birth_date')->nullable();
-            $table->enum('gender', ['male', 'female'])->nullable();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('provider_name')->nullable();
-            $table->string('provider_id')->nullable();
-            $table->text('avatar')->nullable();
+            $table->enum('role', ['admin', 'doctor', 'patient', 'assistant'])->default('patient');
+            $table->boolean('profile_completed')->default(false);
             $table->rememberToken();
             $table->string('reset_password_token')->nullable();
             $table->timestamps();

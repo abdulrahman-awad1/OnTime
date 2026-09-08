@@ -1,16 +1,21 @@
 <?php return array (
-  'laravel/pail' => 
+  'ichtrojan/laravel-otp' => 
   array (
+    'aliases' => 
+    array (
+      'Otp' => 'Ichtrojan\\Otp\\Otp',
+    ),
     'providers' => 
     array (
-      0 => 'Laravel\\Pail\\PailServiceProvider',
+      0 => 'Ichtrojan\\Otp\\OtpServiceProvider',
     ),
   ),
-  'laravel/sail' => 
+  'laravel/reverb' => 
   array (
     'providers' => 
     array (
-      0 => 'Laravel\\Sail\\SailServiceProvider',
+      0 => 'Laravel\\Reverb\\ApplicationManagerServiceProvider',
+      1 => 'Laravel\\Reverb\\ReverbServiceProvider',
     ),
   ),
   'laravel/sanctum' => 
@@ -46,6 +51,13 @@
     'providers' => 
     array (
       0 => 'Termwind\\Laravel\\TermwindServiceProvider',
+    ),
+  ),
+  'pestphp/pest-plugin-laravel' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Pest\\Laravel\\PestServiceProvider',
     ),
   ),
 );

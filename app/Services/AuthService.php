@@ -25,17 +25,21 @@ class AuthService
             'email' => $data['email'],
             'password' => bcrypt($data['password']),
             'phone' => $data['phone'],
+            //'role' => $data['role'],
+           // 'birth_date' => $data['birth_date'],
+           // 'gender' => $data['gender'],
+
         ]);
 
-        $token = Str::random(60);
+       /* $token = Str::random(60);
 
-     //   EmailVerification::create([
-      //      'email' => $user->email,
-      //      'token' => $token,
-      //      'expires_at' => now()->addMinutes(30),
-      //  ]);
+        EmailVerification::create([
+            'email' => $user->email,
+            'token' => $token,
+            'expires_at' => now()->addMinutes(30),
+        ]);
 
-      //  $user->notify(new VerifyEmailNotification($token));
+        $user->notify(new VerifyEmailNotification($token));*/
 
 
         return $user;
@@ -49,13 +53,13 @@ class AuthService
             return null;
         }
 
-        if (!$user->email_verified_at) {
+      /*  if (!$user->email_verified_at) {
             return [
                 'error' => 'Email not verified'
             ];
         }
 
-        $user->tokens()->delete();
+        $user->tokens()->delete();*/
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
