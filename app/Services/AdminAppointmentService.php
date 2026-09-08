@@ -44,6 +44,12 @@ class AdminAppointmentService
 
     public function confirmCashPayment(Appointment $appointment): Appointment
     {
+        // ⚠️ الإصلاح: نتأكد إن الحجز لسه confirmed (أو in_progress - المريض واصل فعلاً)
+        // قبل ما نقبل تأكيد أي دفع عليه
+        if (! in_array($appointment->status, ['confirmed', 'in_progress'])) {
+            throw new \RuntimeException('الحجز ده ملغي أو منتهي، مينفعش تأكد دفع عليه.');
+        }
+
         $payment = $appointment->payment;
 
         if (! $payment || $payment->method !== 'cash') {
@@ -120,7 +126,7 @@ class AdminAppointmentService
             return;
         }
 
-        if ($appointment->payment_status === 'paid' && $payment) {
+        if ($appointment->payment_status == 'paid' && $payment) {
             // نقدي أو حصل في العيادة - الاسترجاع بيتم يدوي من الأسيستانت نفسه
             DB::transaction(function () use ($appointment, $payment) {
                 $payment->update(['status' => 'refunded']);

@@ -23,7 +23,7 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 
 // الأدمن (الدكتور) - محمي بميدلوير إضافي للتأكد إنه admin
-Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum','admin'])->prefix('admin')->group(function () {
     Route::get('/time-slots', [AdminTimeSlotController::class, 'index']);
     Route::post('/time-slots', [AdminTimeSlotController::class, 'store']);
     Route::delete('/time-slots/{timeSlot}', [AdminTimeSlotController::class, 'destroy']);

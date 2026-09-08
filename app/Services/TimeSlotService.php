@@ -12,7 +12,7 @@ class TimeSlotService
 
     public function list(Request $request): LengthAwarePaginator
     {
-        $query = TimeSlot::with('clinicLocation')->query();
+        $query = TimeSlot::with('clinicLocation');
 
         if ($request->filled('clinic_location_id')) {
             $query->forClinic($request->integer('clinic_location_id'));
@@ -38,6 +38,12 @@ class TimeSlotService
     {
         if ($timeSlot->status === 'booked') {
             throw new \RuntimeException('الموعد ده محجوز بالفعل، لازم تلغي الحجز الأول.');
+        }
+
+        // لازم نتأكد كمان إن الموعد مالوش أي تاريخ حجوزات (حتى الملغية)
+        // قبل الحذف الفعلي، وإلا SQL هيرفض بسبب الـ foreign key
+        if ($timeSlot->appointments()->exists()) {
+            throw new \RuntimeException('الموعد ده ليه تاريخ حجوزات سابقة، مينفعش يتمسح نهائيًا.');
         }
 
         $timeSlot->delete();

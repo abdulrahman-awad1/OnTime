@@ -6,5 +6,5 @@ use Exception;
 
 class SlotNotAvailableException extends Exception
 {
-    protected $message = 'الميعاد فات .';
+    protected $message = 'الميعاد غير متاح .';
 }

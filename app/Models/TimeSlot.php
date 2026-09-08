@@ -30,12 +30,11 @@ class TimeSlot extends Model
         return $this->belongsTo(ClinicLocation::class);
     }
 
-    public function appointment(): HasOne
+    public function appointments(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasOne(Appointment::class);
+        return $this->hasMany(\App\Models\Appointment::class);
     }
 
-    // استخدام: TimeSlot::available()->forClinic($id)->forDate($date)->get()
     public function scopeAvailable(Builder $query): Builder
     {
         return $query->where('status', 'available');

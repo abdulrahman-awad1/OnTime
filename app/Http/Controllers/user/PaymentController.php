@@ -21,20 +21,39 @@ class PaymentController extends Controller
 
     public function pay(PaymentRequest $request)
     {
-        $appointment = Appointment::with(['timeSlot.clinicLocation', 'patient'])
+        $appointment = Appointment::with(['timeSlot.clinicLocation', 'patient', 'payment'])
             ->findOrFail($request->appointment_id);
 
         if ($appointment->user_id !== $request->user()->id) {
             return $this->returnError('E403', 'غير مصرح لك', 403);
         }
 
-        // ⚠️ الإصلاح: لازم الحجز يكون لسه confirmed - مش ملغي ولا أي حالة تانية
         if ($appointment->status !== 'confirmed') {
             return $this->returnError('E104', 'الحجز ده ملغي أو منتهي، مينفعش تدفع عليه.', 400);
         }
 
         if ($appointment->payment_status === 'paid') {
             return $this->returnError('E102', 'الحجز ده مدفوع بالفعل', 400);
+        }
+
+        // ⚠️ الإصلاح: نتحقق إن مفيش عملية دفع سابقة مسجّلة على الحجز ده أصلاً
+        // قبل ما نسمح بمحاولة دفع جديدة (بنفس الطريقة أو بطريقة تانية)
+        if ($appointment->payment) {
+            if ($appointment->payment->method === 'cash') {
+                return $this->returnError(
+                    'E106',
+                    'الحجز ده متسجل عليه دفع نقدي بالفعل - لو عايز تغيّر الطريقة، كلّم العيادة الأول.',
+                    409
+                );
+            }
+
+            if ($appointment->payment->status === 'pending') {
+                return $this->returnError(
+                    'E106',
+                    'فيه عملية دفع سابقة لسه معلّقة على الحجز ده، استنى تتأكد أو جرب تاني كمان شوية.',
+                    409
+                );
+            }
         }
 
         if ($request->pay_method === 'cash') {

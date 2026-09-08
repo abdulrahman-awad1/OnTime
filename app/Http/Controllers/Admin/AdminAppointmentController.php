@@ -27,7 +27,7 @@ class AdminAppointmentController extends Controller
 
     public function updateStatus(Request $request, Appointment $appointment)
     {
-        $request->validate(['status' => ['required', Rule::in(['completed', 'no_show', 'cancelled'])]]);
+        $request->validate(['status' => ['required', Rule::in(['completed', 'no_show'])]]);
 
         $updated = $this->adminAppointmentService->updateStatus($appointment, $request->string('status')->toString());
 

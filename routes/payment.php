@@ -1,10 +1,11 @@
 <?php
 
+use App\Http\Controllers\PaymentSummaryController;
 use App\Http\Controllers\user\PaymentController;
 use Illuminate\Support\Facades\Route;
 
 // محمي - المريض بس اللي يقدر يبدأ دفع
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum','admin'])->group(function () {
     Route::post('/payments/pay', [PaymentController::class, 'pay']);
     Route::get('/payments/summary', [PaymentSummaryController::class, 'summary']);
 
