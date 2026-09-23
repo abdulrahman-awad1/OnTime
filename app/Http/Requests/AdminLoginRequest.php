@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class CheckLoginRequest extends FormRequest
+class AdminLoginRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,8 +23,8 @@ class CheckLoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => 'required|numeric|exists:users,phone',
-            'password' => 'required|string|min:6',
+            'email' => 'required|email|exists:users,email',
+            'password' => 'required|string',
         ];
     }
 }

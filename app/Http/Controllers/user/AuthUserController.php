@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\user;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AdminLoginRequest;
 use App\Http\Requests\CheckLoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\userResource;
@@ -23,9 +24,14 @@ class AuthUserController extends Controller
     {
         $data = $request->validated();
 
-        $user = $this->authService->register($data);
+        $result = $this->authService->register($data);
 
-        return $this->returnData('user', new UserResource($user), 'User registered successfully');
+        $responseData = [
+            'user'  => new UserResource($result['user']),
+            'token' => $result['token'],
+        ];
+
+        return $this->returnData('user', $responseData, 'User registered successfully');
     }
 
 
@@ -36,6 +42,26 @@ class AuthUserController extends Controller
         $data = $request->validated();
 
         $result = $this->authService->login($data);
+
+        if (!$result) {
+            return $this->returnError('E001', 'Invalid credentials');
+        }
+        if (isset($result['error'])) {
+            return $this->returnError('E002', $result['error']);
+        }
+
+        return $this->returnData('user', [
+            'user'         => new UserResource($result['user']),
+            'access_token' => $result['token'],
+        ], 'Login successful');
+    }
+
+
+    public function Admin_login(AdminLoginRequest $request)
+    {
+        $data = $request->validated();
+
+        $result = $this->authService->Admin_login($data);
 
         if (!$result) {
             return $this->returnError('E001', 'Invalid credentials');

@@ -20,32 +20,49 @@ class AuthService
 {
     public function register(array $data)
     {
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => bcrypt($data['password']),
-            'phone' => $data['phone'],
-            //'role' => $data['role'],
-           // 'birth_date' => $data['birth_date'],
-           // 'gender' => $data['gender'],
+        return DB::transaction(function () use ($data) {
+            $user = User::create([
+                'name'     => $data['name'],
+                'email'    => $data['email'] ?? ($data['phone'] . '@example.com'),
+                'phone'    => $data['phone'] ,
+                'password' => Hash::make($data['password']),
+            ]);
 
-        ]);
+            $user->profile()->create([
+                'date_of_birth' => $data['date_of_birth'] ,
+                'gender'     => $data['gender'],
+                'address'    => $data['address'] ,
 
-       /* $token = Str::random(60);
+            ]);
 
-        EmailVerification::create([
-            'email' => $user->email,
-            'token' => $token,
-            'expires_at' => now()->addMinutes(30),
-        ]);
+            $token = $user->createToken('auth_token')->plainTextToken;
 
-        $user->notify(new VerifyEmailNotification($token));*/
+            return [
+                'user'  => $user->load('profile'),
+                'token' => $token,
+            ];
+        });
 
-
-        return $user;
     }
 
     public function login(array $data)
+    {
+        $user = User::where('phone', $data['phone'])->first();
+
+        if (!$user || !Hash::check($data['password'], $user->password)) {
+            return null;
+        }
+
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return [
+            'user'  => $user,
+            'token' => $token,
+        ];
+    }
+
+    public function Admin_login(array $data)
     {
         $user = User::where('email', $data['email'])->first();
 
@@ -53,13 +70,6 @@ class AuthService
             return null;
         }
 
-      /*  if (!$user->email_verified_at) {
-            return [
-                'error' => 'Email not verified'
-            ];
-        }
-
-        $user->tokens()->delete();*/
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

@@ -25,10 +25,12 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 // Auth - register للمريض بس، login موحّد للاتنين
 Route::post('/register', [AuthUserController::class, 'register']);
 Route::post('/login', [AuthUserController::class, 'login']);
+Route::post('/admin/login', [AuthUserController::class, 'Admin_login']);
+
 // محمي - محتاج يكون المستخدم عامل تسجيل دخول (Sanctum) - أي role
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthUserController::class, 'logout']);
-    Route::get('/me', [AuthUserController::class, 'me']);
+  //  Route::get('/me', [AuthUserController::class, 'me']);
     Route::post('/appointments', [AppointmentController::class, 'store']);
     Route::get('/appointments/my', [AppointmentController::class, 'myAppointments']);
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'cancel']);
