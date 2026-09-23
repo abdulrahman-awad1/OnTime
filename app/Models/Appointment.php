@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Appointment extends Model
@@ -27,6 +28,11 @@ class Appointment extends Model
     public function timeSlot(): BelongsTo
     {
         return $this->belongsTo(TimeSlot::class);
+    }
+
+    public function medicalRecords(): HasMany
+    {
+        return $this->hasMany(MedicalRecord::class);
     }
 
     public function payment(): HasOne

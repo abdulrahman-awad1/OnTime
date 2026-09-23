@@ -42,10 +42,26 @@ class AdminAppointmentService
         return $appointment->fresh('timeSlot.clinicLocation');
     }
 
+    /**
+     * الأسيستانت بيفعّل الموعد الحالي يدويًا (يقدر يقفز في الدور لحالة طوارئ).
+     * أي حجز تاني كان "in_progress" بيرجع "confirmed" تلقائيًا - واحد بس مفعّل في نفس اللحظة.
+     */
+    public function setCurrentAppointment(Appointment $appointment): Appointment
+    {
+        if (! in_array($appointment->status, ['confirmed', 'in_progress'])) {
+            throw new \RuntimeException('الحجز ده ملغي أو منتهي، مينفعش يتفعّل كموعد حالي.');
+        }
+
+        DB::transaction(function () use ($appointment) {
+            Appointment::where('status', 'in_progress')->update(['status' => 'confirmed']);
+            $appointment->update(['status' => 'in_progress']);
+        });
+
+        return $appointment->fresh('timeSlot.clinicLocation');
+    }
+
     public function confirmCashPayment(Appointment $appointment): Appointment
     {
-        // ⚠️ الإصلاح: نتأكد إن الحجز لسه confirmed (أو in_progress - المريض واصل فعلاً)
-        // قبل ما نقبل تأكيد أي دفع عليه
         if (! in_array($appointment->status, ['confirmed', 'in_progress'])) {
             throw new \RuntimeException('الحجز ده ملغي أو منتهي، مينفعش تأكد دفع عليه.');
         }
@@ -67,8 +83,7 @@ class AdminAppointmentService
 
     /**
      * حجز موعد نيابة عن مريض حاضر فعليًا في العيادة (Walk-in).
-     * الدفع بيتأكد فورًا (مش زي الأونلاين اللي بيستنى webhook) لأن
-     * الأسيستانت واقف قدام المريض ولسه بياخد منه الفلوس مباشرة.
+     * الدفع بيتأكد فورًا لأن الأسيستانت واقف قدام المريض ولسه بياخد منه الفلوس مباشرة.
      */
     public function bookWalkIn(array $data): Appointment
     {
@@ -87,7 +102,7 @@ class AdminAppointmentService
                 'user_id' => $patient->id,
                 'time_slot_id' => $slot->id,
                 'visit_type' => $data['visit_type'],
-                'payment_status' => 'paid', // بيتأكد فورًا - الأسيستانت استلم الفلوس بالفعل
+                'payment_status' => 'paid',
             ]);
 
             Payment::create([
@@ -127,7 +142,6 @@ class AdminAppointmentService
         }
 
         if ($appointment->payment_status == 'paid' && $payment) {
-            // نقدي أو حصل في العيادة - الاسترجاع بيتم يدوي من الأسيستانت نفسه
             DB::transaction(function () use ($appointment, $payment) {
                 $payment->update(['status' => 'refunded']);
                 $appointment->update(['status' => 'cancelled', 'payment_status' => 'refunded']);
@@ -149,18 +163,31 @@ class AdminAppointmentService
             return User::findOrFail($data['patient_id']);
         }
 
-        // نبحث بالتليفون الأول قبل ما نعمل حساب جديد - يمنع تكرار نفس المريض
         $existing = User::where('phone', $data['patient_phone'])->where('role', 'patient')->first();
         if ($existing) {
             return $existing;
         }
 
-        return User::create([
-            'name' => $data['patient_name'],
-            'phone' => $data['patient_phone'],
-            'email' => $data['patient_email'] ?? Str::random(10).'@walkin.local',
-            'password' => Hash::make(Str::random(20)), // المريض ممكن يعمل "نسيت كلمة المرور" لاحقًا
-            'role' => 'patient',
-        ]);
+        return DB::transaction(function () use ($data) {
+            $patient = User::create([
+                'name' => $data['patient_name'],
+                'phone' => $data['patient_phone'],
+                'email' => $data['patient_email'] ?? Str::random(10).'@walkin.local',
+                'password' => Hash::make(Str::random(20)),
+                'role' => 'patient',
+            ]);
+
+            // نعمل Profile للمريض على طول وقت الحجز من العيادة عشان لما
+            // يدخل الدكتور، يلاقي بروفايل جاهز يشتغل عليه.
+            $patient->profile()->create([
+                'date_of_birth' => $data['patient_date_of_birth'],
+                'gender' => $data['patient_gender'],
+                'address' => $data['patient_address'] ?? null,
+            ]);
+
+            $patient->update(['profile_completed' => true]);
+
+            return $patient;
+        });
     }
 }

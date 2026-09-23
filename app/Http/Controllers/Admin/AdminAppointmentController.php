@@ -34,6 +34,17 @@ class AdminAppointmentController extends Controller
         return $this->returnData('appointment', new AppointmentResource($updated), 'تم تحديث حالة الحجز');
     }
 
+    public function setCurrentAppointment(Appointment $appointment)
+    {
+        try {
+            $updated = $this->adminAppointmentService->setCurrentAppointment($appointment);
+
+            return $this->returnData('appointment', new AppointmentResource($updated), 'تم تفعيل الموعد كحالي');
+        } catch (\RuntimeException $e) {
+            return $this->returnError('E107', $e->getMessage(), 422);
+        }
+    }
+
     public function confirmCashPayment(Appointment $appointment)
     {
         try {

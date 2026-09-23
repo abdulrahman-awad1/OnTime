@@ -20,7 +20,8 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 require __DIR__.'/auth.php';
 require __DIR__.'/user.php';
-require __DIR__.'/doctor.php';
+require __DIR__.'/time_slots.php';
 require __DIR__.'/payment.php';
 require __DIR__.'/profile.php';
 require __DIR__.'/admin_appointments.php';
+require __DIR__.'/Doctor_medical.php';
