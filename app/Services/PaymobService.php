@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Appointment;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
+use InvalidArgumentException;
+use RuntimeException;
 
 class PaymobService
 {
@@ -12,18 +14,29 @@ class PaymobService
 
     public function resolveIntegration(string $method): int
     {
-        return match ($method) {
+        $integrationId = match ($method) {
             'card' => config('services.paymob.integration_card'),
             'wallet' => config('services.paymob.integration_wallet'),
             'fawry' => config('services.paymob.integration_fawry'),
-            default => throw new \InvalidArgumentException('Invalid payment method'),
+            default => throw new InvalidArgumentException('Invalid payment method: '.$method),
         };
+
+        if (empty($integrationId)) {
+            throw new RuntimeException("Paymob integration ID for [{$method}] is missing in .env or config.");
+        }
+
+        return (int) $integrationId;
     }
 
     public function authenticate(): string
     {
+        $apiKey = config('services.paymob.api_key');
+        if (empty($apiKey)) {
+            throw new RuntimeException('Paymob API Key is missing in .env');
+        }
+
         $response = Http::post($this->baseUrl.'/auth/tokens', [
-            'api_key' => config('services.paymob.api_key'),
+            'api_key' => $apiKey,
         ])->throw();
 
         return $response->json('token');
@@ -71,6 +84,10 @@ class PaymobService
             default => config('services.paymob.iframe_id_card'),
         };
 
+        if (empty($iframeId)) {
+            throw new RuntimeException("Paymob iframe ID for [{$method}] is missing in .env or config.");
+        }
+
         return "https://accept.paymob.com/api/acceptance/iframes/{$iframeId}?payment_token={$paymentToken}";
     }
 
@@ -92,9 +109,11 @@ class PaymobService
 
     public function dispatchPayment(string $paymentKey, string $method, Appointment $appointment): array
     {
+        $phone = $this->formatPhoneNumber($appointment->patient?->phone);
+
         return match ($method) {
-            'wallet' => ['wallet' => $this->payWallet($paymentKey, $appointment->patient->phone)],
-            'fawry' => ['fawry' => $this->payFawry($paymentKey, $appointment->patient->phone)],
+            'wallet' => ['wallet' => $this->payWallet($paymentKey, $phone)],
+            'fawry' => ['fawry' => $this->payFawry($paymentKey, $phone)],
             default => ['url' => $this->buildIframeUrl($paymentKey, $method)],
         };
     }
@@ -102,23 +121,27 @@ class PaymobService
     public function buildBillingData(Appointment $appointment): array
     {
         $patient = $appointment->patient;
-        $nameParts = explode(' ', trim($patient->name ?? 'Patient'));
+        $nameParts = explode(' ', trim($patient?->name ?? 'Patient Guest'));
         $firstName = $nameParts[0] ?? 'Patient';
-        $lastName = isset($nameParts[1]) ? end($nameParts) : 'Unknown';
+        $lastName = count($nameParts) > 1 ? implode(' ', array_slice($nameParts, 1)) : 'Guest';
 
         return [
-            'apartment' => 'NA', 'email' => $patient->email ?? 'guest@mail.com',
-            'floor' => 'NA', 'street' => 'NA', 'building' => 'NA', 'city' => 'Cairo', 'country' => 'EG',
-            'first_name' => $firstName, 'last_name' => $lastName,
-            'phone_number' => $patient->phone ?? '+201000000000',
+            'apartment' => 'NA',
+            'email' => $patient?->email ?? 'guest@mail.com',
+            'floor' => 'NA',
+            'street' => 'NA',
+            'building' => 'NA',
+            'city' => 'Cairo',
+            'country' => 'EG',
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'phone_number' => $this->formatPhoneNumber($patient?->phone),
+            'shipping_method' => 'PKG',
+            'postal_code' => 'NA',
+            'state' => 'NA',
         ];
     }
 
-    /**
-     * استرجاع فلوس عملية دفع أونلاين اتمت بالفعل.
-     * محتاجين transaction_id بتاعت العملية الأصلية (اللي وصلنا من الـ webhook)،
-     * ومبلغ الاسترجاع بالقروش.
-     */
     public function refund(string $token, string $transactionId, float $amount): array
     {
         return Http::post($this->baseUrl.'/acceptance/void_refund/refund', [
@@ -152,14 +175,25 @@ class PaymobService
             })
             ->implode('');
 
-        $calculatedHmac = hash_hmac('sha512', $message, config('services.paymob.hmac_secret'));
+        $calculatedHmac = hash_hmac('sha512', $message, config('services.paymob.hmac_secret', ''));
         $receivedHmac = Arr::get($payload, 'hmac', '');
 
         return hash_equals($calculatedHmac, $receivedHmac);
     }
 
-    private function toCents(float $amount): int
+    private function toCents(mixed $amount): int
     {
-        return (int) round($amount * 100);
+        return (int) round(((float) $amount) * 100);
+    }
+
+    private function formatPhoneNumber(?string $phone): string
+    {
+        if (! $phone) {
+            return '01000000000';
+        }
+
+        $cleaned = preg_replace('/[^0-9]/', '', $phone);
+
+        return $cleaned ?: '01000000000';
     }
 }

@@ -16,6 +16,8 @@ class ClinicLocation extends Model
         'address',
         'latitude',
         'longitude',
+        'consultation_price',
+        'checkup_price',
     ];
 
     protected $casts = [
