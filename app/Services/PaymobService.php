@@ -107,15 +107,33 @@ class PaymobService
         ])->throw()->json();
     }
 
-    public function dispatchPayment(string $paymentKey, string $method, Appointment $appointment): array
+    public function dispatchPayment(string $paymentKey, string $method, Appointment $appointment, ?string $customPhone = null): array
     {
-        $phone = $this->formatPhoneNumber($appointment->patient?->phone);
+        // استخدام رقم المحفظة المبعوث من البوست مان، أو رقم المريض كخيار احتياطي
+        $phone = $this->formatPhoneNumber($customPhone ?: $appointment->patient?->phone);
 
-        return match ($method) {
-            'wallet' => ['wallet' => $this->payWallet($paymentKey, $phone)],
-            'fawry' => ['fawry' => $this->payFawry($paymentKey, $phone)],
-            default => ['url' => $this->buildIframeUrl($paymentKey, $method)],
-        };
+        if ($method === 'wallet') {
+            $response = $this->payWallet($paymentKey, $phone);
+
+            return [
+                'redirect_url' => $response['iframe_redirection_url'] ?? $response['redirect_url'] ?? null,
+                'type' => 'wallet',
+            ];
+        }
+
+        if ($method === 'fawry') {
+            $response = $this->payFawry($paymentKey, $phone);
+
+            return [
+                'fawry_code' => $response['pending_data']['bill_reference'] ?? null,
+                'type' => 'fawry',
+            ];
+        }
+
+        return [
+            'url' => $this->buildIframeUrl($paymentKey, $method),
+            'type' => 'iframe',
+        ];
     }
 
     public function buildBillingData(Appointment $appointment): array
@@ -193,6 +211,10 @@ class PaymobService
         }
 
         $cleaned = preg_replace('/[^0-9]/', '', $phone);
+
+        if (str_starts_with($cleaned, '20') && strlen($cleaned) === 12) {
+            $cleaned = '0' . substr($cleaned, 2);
+        }
 
         return $cleaned ?: '01000000000';
     }

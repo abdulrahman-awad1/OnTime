@@ -17,6 +17,7 @@ class PaymentRequest extends FormRequest
         return [
             'appointment_id' => ['required', 'integer', 'exists:appointments,id'],
             'pay_method' => ['required', Rule::in(['card', 'wallet', 'fawry', 'cash'])],
+            'wallet_phone' => 'nullable|required_if:pay_method,wallet|numeric|digits:11',
         ];
     }
 }

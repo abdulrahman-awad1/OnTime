@@ -5,7 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminLoginRequest;
 use App\Http\Requests\CheckLoginRequest;
 use App\Http\Requests\RegisterRequest;
-use App\Http\Resources\userResource;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\EmailVerification;
 use App\Services\AuthService;

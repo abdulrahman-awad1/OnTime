@@ -110,10 +110,17 @@ class PaymentController extends Controller
                 ]);
             });
 
-            $result = $this->paymob->dispatchPayment($paymentKey, $payment->method, $appointment);
+            $result = $this->paymob->dispatchPayment(
+                $paymentKey,
+                $payment->method,
+                $appointment,
+                $request->input('wallet_phone')
+            );
+            $message = $request->pay_method === 'wallet'
+                ? 'تم إنشاء طلب دفع المحفظة، حوّل على الرابط لتأكيد الدفع'
+                : 'كمّل الدفع من الرابط ده';
 
-            return $this->returnData('payment', $result, 'كمّل الدفع من الرابط ده');
-
+            return $this->returnData('payment', $result, $message);
         } catch (Exception $e) {
             Log::error('Paymob Payment Initialization Failed: '.$e->getMessage(), [
                 'appointment_id' => $appointment->id,
