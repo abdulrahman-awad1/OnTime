@@ -25,23 +25,32 @@ class AppointmentController extends Controller
             $appointment = $this->appointmentService->book(
                 $request->user(),
                 $request->validated('time_slot_id'),
-                $request->validated('visit_type'),
+                $request->validated('visit_type')
             );
 
-            return $this->returnData('appointment', new AppointmentResource($appointment), 'تم الحجز بنجاح', 201);
+            return $this->returnData('appointment', [
+                'data'     => new AppointmentResource($appointment),
+                'next_action' => [
+                    'endpoint' => '/payments/pay',
+
+                ]
+            ], 'تم إنشاء الحجز بنجاح، يمكنك الانتقال للدفع', 201);
 
         } catch (SlotNotAvailableException $e) {
             return $this->returnError('E101', $e->getMessage(), 409);
 
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             Log::error('Appointment booking failed', [
                 'time_slot_id' => $request->validated('time_slot_id'),
-                'patient_id' => $request->user()->id,
-                'error' => $e->getMessage(),
+                'patient_id'   => $request->user()?->id,
+                'error_msg'    => $e->getMessage(),
+                'file'         => $e->getFile(),
+                'line'         => $e->getLine(),
             ]);
 
             return $this->returnError('E500', 'حصل خطأ أثناء الحجز، حاول تاني.', 500);
         }
+
     }
 
     public function myAppointments(Request $request)

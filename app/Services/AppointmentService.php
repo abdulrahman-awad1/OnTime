@@ -17,28 +17,27 @@ class AppointmentService
 
     public function book(User $patient, int $timeSlotId, string $visitType): Appointment
     {
-        $appointment = DB::transaction(function () use ($patient, $timeSlotId, $visitType) {
+        return DB::transaction(function () use ($patient, $timeSlotId, $visitType) {
             $slot = TimeSlot::where('id', $timeSlotId)->lockForUpdate()->first();
 
             if (! $slot || $slot->status !== 'available') {
-                throw new SlotNotAvailableException();
+                throw new SlotNotAvailableException('الموعد غير متاح حالياً.');
             }
-            if ($slot->date->isPast()) {
+
+            $slotDate = \Carbon\Carbon::parse($slot->date);
+            if ($slotDate->isPast() && ! $slotDate->isToday()) {
                 throw new SlotNotAvailableException('الموعد ده فات معاده، اختار ميعاد تاني.');
             }
 
             $slot->update(['status' => 'booked']);
 
             return Appointment::create([
-                'user_id' => $patient->id,
+                'user_id'      => $patient->id,
                 'time_slot_id' => $slot->id,
-                'visit_type' => $visitType,
+                'visit_type'   => $visitType,
+                'status'       => 'no_show',
             ])->load('timeSlot.clinicLocation');
         });
-
-        TimeSlotBooked::dispatch($appointment->time_slot_id, $appointment->timeSlot->clinic_location_id);
-
-        return $appointment;
     }
 
     /**

@@ -35,6 +35,6 @@ class ClinicLocationController extends Controller
             $request->date('date')?->toDateString()
         );
 
-        return $this->returnData('time_slots', TimeSlotResource::collection($slots));
+        return $this->returnData('time_slots', $slots);
     }
 }

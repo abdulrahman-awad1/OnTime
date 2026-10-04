@@ -12,16 +12,32 @@ class AppointmentResource extends JsonResource
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request): array
+    public function toArray($request)
     {
+        $timeSlot = $this->whenLoaded('timeSlot');
+        $clinic = $timeSlot?->clinicLocation;
+
+        $durationMinutes = ($timeSlot?->start_time && $timeSlot?->end_time)
+            ? \Carbon\Carbon::parse($timeSlot->start_time)->diffInMinutes(\Carbon\Carbon::parse($timeSlot->end_time))
+            : 30;
+
+        $calculatedPrice = match ($this->visit_type) {
+            'checkup'      => $clinic?->checkup_price,
+            'consultation' => $clinic?->consultation_price,
+            default        => $clinic?->checkup_price,
+        };
+
+        $price = (float) ($calculatedPrice ?? $this->amount ?? 0);
+
         return [
-            'id' => $this->id,
-            'status' => $this->status,
-            'visit_type' => $this->visit_type,
-            'payment_status' => $this->payment_status,
-            'patient' => new UserResource($this->whenLoaded('patient')),
-            'time_slot' => new TimeSlotResource($this->whenLoaded('timeSlot')),
-            'created_at' => $this->created_at->toDateTimeString(),
+            'appointment_id'   => $this->id,
+            'clinic_name'      => $clinic?->name ?? 'غير محدد',
+            'visit_type'       => $this->visit_type ,
+            'date'             => $timeSlot?->date ? \Carbon\Carbon::parse($timeSlot->date)->format('Y-m-d') : null,
+            'start_time'       => $timeSlot?->start_time ? \Carbon\Carbon::parse($timeSlot->start_time)->format('h:i A') : null,
+            'duration_minutes' => $durationMinutes,
+            'price'            => $price,
+            'total_amount'     => $price,
         ];
     }
 }

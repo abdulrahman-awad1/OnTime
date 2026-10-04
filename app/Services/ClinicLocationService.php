@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\ClinicLocation;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Carbon;
+use App\Http\Resources\TimeSlotResource;
 
 class ClinicLocationService
 {
@@ -13,23 +15,20 @@ class ClinicLocationService
         return ClinicLocation::all();
     }
 
-    public function availableSlots(ClinicLocation $clinicLocation, ?string $date): Collection
+    public function availableSlots(ClinicLocation $clinicLocation, ?string $date = null): AnonymousResourceCollection
     {
-        $query = $clinicLocation->timeSlots()->available();
+        $targetDate = $date ?? now()->toDateString();
 
-        if ($date) {
-            $query->forDate($date);
-        } else {
-            $query->whereBetween('date', [
-                now()->toDateString(),
-                Carbon::now()->addDays(14)->toDateString(),
-            ]);
-        }
-
-        return $query->with('clinicLocation')
-            ->orderBy('date')
+        $slots = $clinicLocation->timeSlots()
+            ->where('status', 'available')
+            ->whereDate('date', $targetDate)
+            ->when($targetDate === now()->toDateString(), function ($query) {
+                $query->where('start_time', '>', now()->toTimeString());
+            })
             ->orderBy('start_time')
             ->get();
+
+        return TimeSlotResource::collection($slots);
     }
 
 }

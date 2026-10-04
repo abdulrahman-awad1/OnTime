@@ -28,7 +28,7 @@ class PaymentController extends Controller
             return $this->returnError('E403', 'غير مصرح لك', 403);
         }
 
-        if ($appointment->status !== 'confirmed') {
+        if ($appointment->status !== 'no_show') {
             return $this->returnError('E104', 'الحجز ده ملغي أو منتهي، مينفعش تدفع عليه.', 400);
         }
 
@@ -66,6 +66,7 @@ class PaymentController extends Controller
     private function payCash(Appointment $appointment)
     {
         $payment = DB::transaction(function () use ($appointment) {
+            $appointment->update(['status' => 'confirmed']);
             return Payment::create([
                 'appointment_id' => $appointment->id,
                 'user_id' => $appointment->user_id,

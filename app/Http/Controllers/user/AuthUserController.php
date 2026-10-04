@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminLoginRequest;
 use App\Http\Requests\CheckLoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Resources\AdminResource;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\EmailVerification;
@@ -71,7 +72,7 @@ class AuthUserController extends Controller
         }
 
         return $this->returnData('user', [
-            'user'         => new UserResource($result['user']),
+            'user'         => new AdminResource($result['user']),
             'access_token' => $result['token'],
         ], 'Login successful');
     }

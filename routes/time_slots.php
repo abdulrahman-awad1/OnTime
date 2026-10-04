@@ -28,7 +28,7 @@ Route::middleware(['auth:sanctum','admin'])->prefix('admin')->group(function () 
     Route::post('/time-slots', [AdminTimeSlotController::class, 'store']);
     Route::delete('/time-slots/{timeSlot}', [AdminTimeSlotController::class, 'destroy']);
     Route::post('/clinic-locations', [AdminClinicLocationController::class, 'store']);
-
+    Route::get('/clinics/{clinic}/visit-types', [AdminClinicLocationController::class, 'getVisitTypes']);
 });
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
     // ... باقي الـ admin routes زي ما هي

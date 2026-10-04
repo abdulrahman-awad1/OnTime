@@ -18,4 +18,23 @@ class AdminClinicLocationController extends Controller
 
         return $this->returnData('clinic_location', new ClinicLocationResource($clinic), 'تم إضافة العيادة', 201);
     }
+    public function getVisitTypes(ClinicLocation $clinic)
+    {
+        $visitTypes = [
+            [
+                'key'       => 'checkup',
+                'label'     => 'كشف',
+                'price'     => (float) $clinic->checkup_price, // أو اسم عمود سعر الكشف عندك
+                'formatted' => 'كشف - ' . number_format($clinic->checkup_price) . ' ج.م',
+            ],
+            [
+                'key'       => 'consultation',
+                'label'     => 'استشارة',
+                'price'     => (float) $clinic->consultation_price, // أو اسم عمود سعر الاستشارة عندك
+                'formatted' => 'استشارة - ' . number_format($clinic->consultation_price) . ' ج.م',
+            ],
+        ];
+
+        return $this->returnData('visit_types', $visitTypes);
+    }
 }

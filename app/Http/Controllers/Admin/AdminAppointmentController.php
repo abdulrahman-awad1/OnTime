@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exceptions\SlotNotAvailableException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreNewPatientWalkinRequest;
 use App\Http\Requests\StoreWalkinAppointmentRequest;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
+use App\Models\User;
 use App\Services\AdminAppointmentService;
 use App\trait\ApiResponse;
 use Illuminate\Http\Request;
@@ -55,6 +57,24 @@ class AdminAppointmentController extends Controller
             return $this->returnError('E103', $e->getMessage(), 422);
         }
     }
+    public function search(Request $request)
+    {
+        $query = $request->input('query');
+
+        if (!$query) {
+            return $this->returnData('patients', []);
+        }
+
+        $patients = User::where('role', 'patient') // أو حسب تصميم الجدول عندك للـ Patients
+        ->where(function ($q) use ($query) {
+            $q->where('phone', 'like', "%{$query}%")
+                ->orWhere('name', 'like', "%{$query}%");
+        })
+            ->limit(10)
+            ->get(['id', 'name', 'phone']);
+
+        return $this->returnData('patients', $patients);
+    }
 
     // POST /api/admin/appointments/walk-in
     public function bookWalkIn(StoreWalkinAppointmentRequest $request)
@@ -68,6 +88,16 @@ class AdminAppointmentController extends Controller
         }
     }
 
+    public function bookWalkInNewPatient(StoreNewPatientWalkinRequest $request)
+    {
+        try {
+            $appointment = $this->adminAppointmentService->bookWalkInForNewPatient($request->validated());
+
+            return $this->returnData('appointment', new AppointmentResource($appointment), 'تم تسجيل المريض وحجز الموعد بنجاح', 201);
+        } catch (SlotNotAvailableException $e) {
+            return $this->returnError('E101', $e->getMessage(), 409);
+        }
+    }
     // POST /api/admin/appointments/{appointment}/cancel
     public function cancel(Appointment $appointment)
     {

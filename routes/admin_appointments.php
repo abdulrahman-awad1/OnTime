@@ -6,6 +6,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // ... باقي الـ routes الموجودة زي ما هي
 
     Route::post('/appointments/walk-in', [AdminAppointmentController::class, 'bookWalkIn']);
+
+    Route::post('/appointments/walk-in/new-patient', [AdminAppointmentController::class, 'bookWalkInNewPatient']);Route::get('/patients/search', [AdminAppointmentController::class, 'search']);
     Route::post('/appointments/{appointment}/cancel', [AdminAppointmentController::class, 'cancel']);
     Route::post('/appointments/{appointment}/confirm-cash-payment', [AdminAppointmentController::class, 'confirmCashPayment']);
 

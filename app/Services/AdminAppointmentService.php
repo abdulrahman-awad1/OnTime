@@ -87,31 +87,38 @@ class AdminAppointmentService
      */
     public function bookWalkIn(array $data): Appointment
     {
-        $patient = $this->findOrCreatePatient($data);
+        // جلب المريض الموجود
+        $patient = User::findOrFail($data['patient_id']);
 
         $appointment = DB::transaction(function () use ($patient, $data) {
-            $slot = TimeSlot::where('id', $data['time_slot_id'])->lockForUpdate()->first();
+            $slot = TimeSlot::where('id', $data['time_slot_id'])
+                ->lockForUpdate()
+                ->first();
 
-            if (! $slot || $slot->status !== 'available') {
+            if (!$slot || $slot->status !== 'available') {
                 throw new SlotNotAvailableException();
             }
 
+            // 1. تحويل الموعد لمحجوز نهائياً
             $slot->update(['status' => 'booked']);
 
+            // 2. إنشاء الحجز وتأكيده فوراً
             $appointment = Appointment::create([
-                'user_id' => $patient->id,
-                'time_slot_id' => $slot->id,
-                'visit_type' => $data['visit_type'],
-                'payment_status' => 'paid',
+                'user_id'        => $patient->id,
+                'time_slot_id'   => $slot->id,
+                'visit_type'     => $data['visit_type'],
+                'status'         => 'confirmed', // تأكيد الحجز مباشرة في العيادة
+                'payment_status' => 'paid',      // تحويل حالة الدفع لمدفوع فوراً
             ]);
 
+            // 3. تسوية سجل الدفع النقدى كـ paid
             Payment::create([
                 'appointment_id' => $appointment->id,
-                'user_id' => $patient->id,
-                'provider' => 'in_person',
-                'amount' => $appointment->load('timeSlot.clinicLocation')->price(),
-                'method' => $data['pay_method'],
-                'status' => 'paid',
+                'user_id'        => $patient->id,
+                'provider'       => 'in_person',
+                'amount'         => $appointment->load('timeSlot.clinicLocation')->price(),
+                'method'         => $data['pay_method'] ?? 'cash',
+                'status'         => 'paid',
             ]);
 
             return $appointment;
@@ -120,6 +127,58 @@ class AdminAppointmentService
         return $appointment->load('timeSlot.clinicLocation', 'patient', 'payment');
     }
 
+    public function bookWalkInForNewPatient(array $data): Appointment
+    {
+        return DB::transaction(function () use ($data) {
+            // 1. إنشاء الحساب الجديد مباشرة (كلمة المرور هي رقم التليفون)
+            $patient = User::create([
+                'name'     => $data['name'],
+                'phone'    => $data['phone'],
+                'email'    => $data['email'] ?? ($data['phone'] . '@example.com'),
+                'password' => Hash::make($data['phone']),
+            ]);
+
+            // 2. إنشاء البروفايل الخاص بالمريض
+            $patient->profile()->create([
+                'date_of_birth' => $data['date_of_birth'] ,
+                'gender'        => $data['gender'] ,
+                'address'       => $data['address'] ,
+            ]);
+
+            // 3. التحقق من السلوت وقفله بـ lockForUpdate
+            $slot = TimeSlot::where('id', $data['time_slot_id'])
+                ->lockForUpdate()
+                ->first();
+
+            if (! $slot || $slot->status !== 'available') {
+                throw new SlotNotAvailableException();
+            }
+
+            // 4. تحديث حالة الموعد لمحجوز نهائياً
+            $slot->update(['status' => 'booked']);
+
+            // 5. إنشاء الحجز وتأكيده مباشرة
+            $appointment = Appointment::create([
+                'user_id'        => $patient->id,
+                'time_slot_id'   => $slot->id,
+                'visit_type'     => $data['visit_type'],
+                'status'         => 'confirmed',
+                'payment_status' => 'paid',
+            ]);
+
+            // 6. إنشاء سجل الدفع النقدي
+            Payment::create([
+                'appointment_id' => $appointment->id,
+                'user_id'        => $patient->id,
+                'provider'       => 'in_person',
+                'amount'         => $appointment->load('timeSlot.clinicLocation')->price(),
+                'method'         => $data['pay_method'] ?? 'cash',
+                'status'         => 'paid',
+            ]);
+
+            return $appointment->load('timeSlot.clinicLocation', 'patient', 'payment');
+        });
+    }
     /**
      * إلغاء أي حجز من طرف الأدمن/الأسيستانت (مش بس المريض نفسه).
      * بيشغّل نفس منطق الاسترجاع بتاع المريض بالظبط.
