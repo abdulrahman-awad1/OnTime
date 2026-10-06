@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreNewPatientWalkinRequest;
 use App\Http\Requests\StoreWalkinAppointmentRequest;
 use App\Http\Resources\AppointmentResource;
+use App\Http\Resources\FilterAppointmentRsource;
 use App\Models\Appointment;
 use App\Models\User;
 use App\Services\AdminAppointmentService;
@@ -24,7 +25,7 @@ class AdminAppointmentController extends Controller
     {
         $appointments = $this->adminAppointmentService->list($request);
 
-        $resourceCollection = AppointmentResource::collection($appointments);
+        $resourceCollection = FilterAppointmentRsource::collection($appointments);
 
         return response()->json([
             'status' => true,
