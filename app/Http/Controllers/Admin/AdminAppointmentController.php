@@ -24,7 +24,21 @@ class AdminAppointmentController extends Controller
     {
         $appointments = $this->adminAppointmentService->list($request);
 
-        return $this->returnData('appointments', AppointmentResource::collection($appointments));
+        $resourceCollection = AppointmentResource::collection($appointments);
+
+        return response()->json([
+            'status' => true,
+            'errNum' => '0000',
+            'msg'    => 'success',
+            'data'   => $resourceCollection->items(), // قائمة الحجوزات فقط
+            'pagination' => [
+                'current_page' => $appointments->currentPage(),
+                'last_page'    => $appointments->lastPage(),
+                'per_page'     => $appointments->perPage(),
+                'total'        => $appointments->total(),
+                'has_more'     => $appointments->hasMorePages(),
+            ],
+        ]);
     }
 
     public function updateStatus(Request $request, Appointment $appointment)

@@ -24,11 +24,16 @@ class AdminAppointmentService
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
         }
-        if ($request->filled('date')) {
+        if ($request->boolean('is_today')) {
+            $query->whereHas('timeSlot', fn ($q) => $q->whereDate('date', now()->toDateString()));
+        } elseif ($request->filled('date')) {
             $query->whereHas('timeSlot', fn ($q) => $q->whereDate('date', $request->date('date')->toDateString()));
         }
+        if ($request->filled('visit_type')) {
+            $query->where('visit_type', $request->string('visit_type'));
+        }
 
-        return $query->latest()->paginate(20);
+        return $query->latest()->paginate(10);
     }
 
     public function updateStatus(Appointment $appointment, string $status): Appointment
