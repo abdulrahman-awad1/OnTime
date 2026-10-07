@@ -28,6 +28,8 @@ Route::middleware(['auth:sanctum','admin'])->prefix('admin')->group(function () 
     Route::post('/time-slots', [AdminTimeSlotController::class, 'store']);
     Route::delete('/time-slots/{timeSlot}', [AdminTimeSlotController::class, 'destroy']);
     Route::post('/clinic-locations', [AdminClinicLocationController::class, 'store']);
+    Route::get('/get-clinic-locations', [AdminClinicLocationController::class, 'index']);
+
     Route::get('/clinics/{clinic}/visit-types', [AdminClinicLocationController::class, 'getVisitTypes']);
 });
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
