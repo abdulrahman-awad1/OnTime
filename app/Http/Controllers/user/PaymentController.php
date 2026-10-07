@@ -29,7 +29,7 @@ class PaymentController extends Controller
         }
 
         if ($appointment->status !== 'no_show') {
-            return $this->returnError('E104', 'الحجز ده ملغي أو منتهي، مينفعش تدفع عليه.', 400);
+            return $this->returnError('E104', 'الميعاد دا حد حجزة حالا.', 400);
         }
 
         if ($appointment->payment_status === 'paid') {
