@@ -10,6 +10,13 @@ class StoreClinicLocationRequest extends FormRequest
     {
         return true;
     }
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'latitude'  => $this->filled('latitude') ? $this->latitude : 30.0444,
+            'longitude' => $this->filled('longitude') ? $this->longitude : 31.2357,
+        ]);
+    }
 
     public function rules(): array
     {
