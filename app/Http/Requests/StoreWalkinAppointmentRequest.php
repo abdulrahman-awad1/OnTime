@@ -18,7 +18,7 @@ class StoreWalkinAppointmentRequest extends FormRequest
             'patient_id'   => 'required|integer|exists:users,id',
             'time_slot_id' => 'required|integer|exists:time_slots,id',
             'visit_type'   => 'required|string|in:checkup,consultation',
-            'pay_method'   => 'required|string|in:cash',
+            'pay_method'   => 'nullable|string|in:cash',
         ];
 
     }
