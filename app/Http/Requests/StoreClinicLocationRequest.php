@@ -16,10 +16,11 @@ class StoreClinicLocationRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:500'],
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'consultation_price' => ['required', 'numeric', 'min:0'],
             'checkup_price' => ['required', 'numeric', 'min:0'],
         ];
     }
+
 }
