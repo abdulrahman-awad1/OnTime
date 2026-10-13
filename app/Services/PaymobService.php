@@ -70,7 +70,7 @@ class PaymobService
             'billing_data' => $billingData,
             'currency' => 'EGP',
             'integration_id' => $integrationId,
-            'redirect_url' => route('redirect'),
+            'url' => route('redirect'),
         ])->throw();
 
         return $response->json('token');
