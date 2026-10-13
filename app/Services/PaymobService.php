@@ -116,7 +116,7 @@ class PaymobService
             $response = $this->payWallet($paymentKey, $phone);
 
             return [
-                'redirect_url' => $response['iframe_redirection_url'] ?? $response['redirect_url'] ?? null,
+                'url' => $response['iframe_redirection_url'] ?? $response['url'] ?? null,
                 'type' => 'wallet',
             ];
         }
