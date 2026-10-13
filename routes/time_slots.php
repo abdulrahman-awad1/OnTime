@@ -21,6 +21,7 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::get('/clinics/{clinic}/visit-types', [AdminClinicLocationController::class, 'getVisitTypes']);
 
 // الأدمن (الدكتور) - محمي بميدلوير إضافي للتأكد إنه admin
 Route::middleware(['auth:sanctum','admin'])->prefix('admin')->group(function () {
@@ -30,7 +31,6 @@ Route::middleware(['auth:sanctum','admin'])->prefix('admin')->group(function () 
     Route::post('/clinic-locations', [AdminClinicLocationController::class, 'store']);
     Route::get('/get-clinic-locations', [AdminClinicLocationController::class, 'index']);
 
-    Route::get('/clinics/{clinic}/visit-types', [AdminClinicLocationController::class, 'getVisitTypes']);
 });
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
     // ... باقي الـ admin routes زي ما هي
