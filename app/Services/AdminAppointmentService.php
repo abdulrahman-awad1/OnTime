@@ -58,7 +58,7 @@ class AdminAppointmentService
         }
 
         DB::transaction(function () use ($appointment) {
-            Appointment::where('status', 'in_progress')->update(['status' => 'confirmed']);
+            Appointment::where('status', 'in_progress')->update(['status' => 'completed']);
             $appointment->update(['status' => 'in_progress']);
         });
 

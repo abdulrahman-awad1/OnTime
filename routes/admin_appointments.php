@@ -17,6 +17,4 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 
     Route::put('/appointments/{appointment}/set-current', [AdminAppointmentController::class, 'setCurrentAppointment']);
 
-    Route::post('/staff', [StaffController::class, 'store']);
-    Route::get('/staff', [StaffController::class, 'index']);
 });

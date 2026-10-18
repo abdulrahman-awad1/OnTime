@@ -25,3 +25,5 @@ require __DIR__.'/payment.php';
 require __DIR__.'/profile.php';
 require __DIR__.'/admin_appointments.php';
 require __DIR__.'/Doctor_medical.php';
+require __DIR__.'/clinic_locations.php';
+require __DIR__.'/summary.php';

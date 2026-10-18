@@ -15,8 +15,7 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-//  >>>> >>config >> auth   دا معناه انك هتدخل ع , ..
-// auth >> authentication معناها ان لازم اكون عامل
+
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
