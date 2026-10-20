@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreClinicLocationRequest;
+use App\Http\Requests\UpdateClinicLocationRequest;
 use App\Http\Resources\ClinicLocationResource;
 use App\Http\Resources\GetAllClinicResource;
 use App\Models\ClinicLocation;
@@ -24,6 +25,20 @@ class AdminClinicLocationController extends Controller
         $clinicLocations = ClinicLocation::all();
         return $this->returnData('clinic_locations', GetAllClinicResource::collection($clinicLocations), 'تم جلب العيادات بنجاح');
 
+    }
+
+    public function update(UpdateClinicLocationRequest $request, ClinicLocation $clinicLocation)
+    {
+        $clinicLocation->update($request->validated());
+
+        return $this->returnData('clinic_location', new ClinicLocationResource($clinicLocation), 'تم تحديث بيانات العيادة بنجاح');
+    }
+
+    public function destroy(ClinicLocation $clinicLocation)
+    {
+        $clinicLocation->delete();
+
+        return $this->successMessage('تم حذف العيادة بنجاح');
     }
     public function getVisitTypes(ClinicLocation $clinic)
     {
