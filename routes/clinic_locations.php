@@ -11,4 +11,5 @@ Route::middleware(['auth:sanctum','admin'])->prefix('admin')->group(function () 
     Route::get('/clinics/{clinic}/visit-types', [AdminClinicLocationController::class, 'getVisitTypes']);
 
 
+
 });
