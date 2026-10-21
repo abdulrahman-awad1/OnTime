@@ -5,7 +5,7 @@ use App\Http\Controllers\Admin\AdminClinicLocationController;
 
 Route::middleware(['auth:sanctum','admin'])->prefix('admin')->group(function () {
     Route::put('/clinic-locations/{clinicLocation}', [AdminClinicLocationController::class, 'update']);
-    Route::delete('/clinic-locations/{clinicLocation}', [AdminClinicLocationController::class, 'destroy']);
+    Route::delete('/delete-clinic/{clinicLocation}', [AdminClinicLocationController::class, 'destroy']);
     Route::post('/clinic-locations', [AdminClinicLocationController::class, 'store']);
     Route::get('/get-clinic-locations', [AdminClinicLocationController::class, 'index']);
     Route::get('/clinics/{clinic}/visit-types', [AdminClinicLocationController::class, 'getVisitTypes']);
