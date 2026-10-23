@@ -1,5 +1,5 @@
 <?php
-
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SummaryController;
 
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
