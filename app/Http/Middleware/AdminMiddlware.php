@@ -17,7 +17,7 @@ class AdminMiddlware
     {
         // 1. التأكد من أن المستخدم قام بتسجيل الدخول
         // 2. التحقق مما إذا كان يمتلك صلاحية أدمن (افترضنا وجود حقل is_admin أو role)
-        if (auth()->check() && (auth()->user()->is_admin || auth()->user()->role === 'admin')) {
+        if (auth()->check() && (auth()->user()->role === 'doctor' || auth()->user()->role === 'admin')) {
             return $next($request);
         }
 
