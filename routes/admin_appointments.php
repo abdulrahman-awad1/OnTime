@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminAppointmentController;
 use Illuminate\Support\Facades\Route;
-Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'admin','doctor'])->prefix('admin')->group(function () {
     // ... باقي الـ routes الموجودة زي ما هي
 
     Route::post('/appointments/walk-in', [AdminAppointmentController::class, 'bookWalkIn']);
