@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Medicine;
 use App\trait\ApiResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class MedicineController extends Controller
@@ -13,7 +12,6 @@ class MedicineController extends Controller
     use ApiResponse;
 
     // GET /doctor/medicines/search?q=بنادول
-
 
     public function search(Request $request)
     {
@@ -27,43 +25,34 @@ class MedicineController extends Controller
             return $this->returnData('medicines', []);
         }
 
-        // جلب الداتا من المصدر الخارجي وتخزينها في الكاش لمدة 24 ساعة لسرعة الأداء
-        $allMedicines = Cache::remember('egypt_medicines_dataset', 86400, function () {
-            // رابط مباشر لقاعدة بيانات الأدوية المصرية المرفوعة بصيغة JSON على GitHub
-            $url = 'https://raw.githubusercontent.com/anzawi/Egyptian-Drugs-Dataset/main/drugs.json';
+        // استدعاء API حقيقي ومفتوح للبحث التقريبي عن الأدوية
+        $response = Http::timeout(10)->get('https://rxnav.nlm.nih.gov/REST/approximateTerm.json', [
+            'term' => $q,
+            'maxEntries' => 15,
+        ]);
 
-            $response = Http::timeout(15)->get($url);
+        if (!$response->successful()) {
+            return $this->returnData('medicines', []);
+        }
 
-            if ($response->successful()) {
-                return $response->json();
-            }
-            return [];
-        });
+        $candidates = $response->json('approximateGroup.candidate') ?? [];
 
-        // فلترة النتائج بناءً على كلمة البحث (يدعم العربي والإنجليزي والمادة الفعالة)
-        $results = collect($allMedicines)
-            ->filter(function ($item) use ($q) {
-                $nameAr = $item['name_ar'] ?? $item['arabic_name'] ?? '';
-                $nameEn = $item['name_en'] ?? $item['english_name'] ?? $item['trade_name'] ?? '';
-                $scientific = $item['scientific_name'] ?? $item['active_ingredient'] ?? '';
-
-                return mb_stripos($nameAr, $q) !== false ||
-                    mb_stripos($nameEn, $q) !== false ||
-                    mb_stripos($scientific, $q) !== false;
-            })
+        // تنسيق النتيجة لتطابق الحقول في تطبيقك
+        $medicines = collect($candidates)
+            ->unique('rxcui')
+            ->whereNotNull('name')
             ->take(15)
-            ->map(function ($item, $index) {
-                // توحيد شكل الـ Response ليكون مطابقاً لجدولك تماماً
+            ->values()
+            ->map(function ($item) {
                 return [
-                    'id'                  => $item['id'] ?? ($index + 1),
-                    'commercial_name_ar'  => $item['name_ar'] ?? $item['arabic_name'] ?? null,
-                    'commercial_name_en'  => $item['name_en'] ?? $item['trade_name'] ?? null,
-                    'scientific_name'     => $item['scientific_name'] ?? $item['active_ingredient'] ?? null,
-                    'price_egp'           => isset($item['price']) ? (float) $item['price'] : 0,
+                    'id'                 => (int) $item['rxcui'],
+                    'commercial_name_ar' => $item['name'], // هذا الـ API يدعم الإنجليزية فقط
+                    'commercial_name_en' => $item['name'],
+                    'scientific_name'    => $item['name'],
+                    'price_egp'          => 0, // لأنها قاعدة بيانات عالمية لا تحتوي على التسعير المصري
                 ];
-            })
-            ->values();
+            });
 
-        return $this->returnData('medicines', $results);
+        return $this->returnData('medicines', $medicines);
     }
 }
