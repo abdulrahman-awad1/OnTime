@@ -16,7 +16,7 @@ class DoctorProfileService
 
     public function save(User $doctor, array $data): DoctorProfile
     {
-        $profile = DoctorProfile::updateOrCreate(['user_id' => $doctor->id], $data);
+        $profile = $doctor->doctorProfile()->updateOrCreate([], $data);
 
         return $profile->load('user:id,name');
     }
