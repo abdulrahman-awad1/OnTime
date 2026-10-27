@@ -3,136 +3,129 @@
 namespace App\Services;
 
 use App\Models\Medicine;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
 
 class EgyptianMedicineService
 {
-
     public function searchAndSync(string $query): Collection
     {
         $query = trim($query);
-        $searchVariants = $this->getArabicSearchVariants($query);
 
-        // 1. نبحث الأول في الداتابيز بتاعتنا (سريع جداً: 50ms - 100ms)
-        $medicines = $this->queryLocalDatabase($searchVariants);
+        // 1. البحث في قاعدة البيانات المحلية أولاً (سرعة فائقة)
+        $medicines = $this->queryLocalDatabase($query);
 
-        // 2. لو الدواء موجود عندنا، نرجعه فوراً بدون أي تعطيل خارجي!
         if ($medicines->isNotEmpty()) {
             return $medicines;
         }
 
-        // 3. لو مش موجود عندنا (دواء جديد لسه نازل السوق)، نطلع نجيبه من بره ونخزنه عندنا
+        // 2. إذا لم يكن الدواء موجوداً محلياً، يتم جلبه من الـ API الخارجي وتخزينه
         $this->fetchAndSyncFromLiveSource($query);
 
-        // 4. نبحث تاني في جدولنا بعد ما اتخزن ونرجعه للدكتور
-        return $this->queryLocalDatabase($searchVariants);
+        // 3. إعادة البحث محلياً بعد الحفظ لإرجاع البيانات بالـ ID الحقيقي
+        return $this->queryLocalDatabase($query);
     }
 
-    protected function queryLocalDatabase(array $searchVariants): Collection
+    protected function queryLocalDatabase(string $query): Collection
     {
-        return Medicine::where(function ($q) use ($searchVariants) {
-            foreach ($searchVariants as $variant) {
-                $q->orWhere('commercial_name_ar', 'like', "%{$variant}%")
-                    ->orWhere('commercial_name_en', 'like', "%{$variant}%")
-                    ->orWhere('scientific_name', 'like', "%{$variant}%");
-            }
+        return Medicine::where(function ($q) use ($query) {
+            $q->where('commercial_name_en', 'like', "%{$query}%")
+                ->orWhere('scientific_name', 'like', "%{$query}%");
         })
             ->limit(15)
             ->get(['id', 'commercial_name_ar', 'commercial_name_en', 'scientific_name', 'price_egp']);
     }
 
-    /**
-     * الاتصال المباشر لجلب الأدوية الجديدة وتحديث الأسعار
-     */
     protected function fetchAndSyncFromLiveSource(string $query): void
     {
+        $recordsToInsert = [];
+        $now = now();
+
+        // المصدر الأول: NLM ClinicalTables API (ممتاز وسريع جداً للـ Autocomplete بالاسم الإنجليزي والتركيزات)
         try {
-            // الاتصال بمحرك بحث المنتجات الدوائية في السوق المصري (يدعم العربي والإنجليزي والأسعار المحدثة)
-            $response = Http::timeout(4)
-                ->withHeaders([
-                    'Accept' => 'application/json',
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                ])
-                ->get('https://chefaa.com/api/v1/products/search', [
-                    'q' => $query,
-                ]);
+            $clinicalResponse = Http::timeout(5)->get('https://clinicaltables.nlm.nih.gov/api/rxterms/v3/search', [
+                'terms'   => $query,
+                'ef'      => 'STRENGTHS_AND_FORMS,SXDG_NAME',
+                'maxList' => 15,
+            ]);
 
-            if ($response->successful() && !empty($response->json('data'))) {
-                foreach (collect($response->json('data'))->take(15) as $item) {
-                    $nameAr = $item['name_ar'] ?? $item['title_ar'] ?? $item['name'] ?? null;
-                    $nameEn = $item['name_en'] ?? $item['title_en'] ?? $item['slug'] ?? $nameAr;
-                    $price  = $item['price'] ?? $item['final_price'] ?? 0;
-                    $scientific = $item['active_ingredient'] ?? $item['scientific_name'] ?? '';
+            if ($clinicalResponse->successful()) {
+                $data  = $clinicalResponse->json();
+                $names = $data[1] ?? [];
+                $extra = $data[2] ?? [];
 
-                    if ($nameAr || $nameEn) {
-                        Medicine::updateOrCreate(
-                            ['commercial_name_en' => $nameEn],
-                            [
-                                'commercial_name_ar' => $nameAr ?? $nameEn,
-                                'scientific_name'    => $scientific,
-                                'price_egp'          => (float) $price,
-                            ]
-                        );
-                    }
-                }
-                return;
-            }
+                foreach ($names as $index => $drugName) {
+                    $scientific = $extra['SXDG_NAME'][$index] ?? $drugName;
+                    $forms = isset($extra['STRENGTHS_AND_FORMS'][$index])
+                        ? implode(', ', (array) $extra['STRENGTHS_AND_FORMS'][$index])
+                        : '';
 
-            // Fallback: إذا كان البحث بالإنجليزية لمادة فعالة أو دواء عالمي غير موجود في الرد الأول
-            // نتصل بـ API المعهد الوطني للصحة (RxNorm) المضمون 100%
-            if (preg_match('/^[a-zA-Z0-9\s]+$/', $query)) {
-                $rxResponse = Http::timeout(4)->get('https://rxnav.nlm.nih.gov/REST/approximateTerm.json', [
-                    'term' => $query,
-                    'maxEntries' => 10,
-                ]);
+                    $fullEnName = trim($drugName . ' ' . $forms);
 
-                if ($rxResponse->successful()) {
-                    $candidates = collect($rxResponse->json('approximateGroup.candidate') ?? [])
-                        ->unique('rxcui')
-                        ->whereNotNull('name')
-                        ->take(10);
-
-                    foreach ($candidates as $candidate) {
-                        Medicine::firstOrCreate(
-                            ['commercial_name_en' => $candidate['name']],
-                            [
-                                'commercial_name_ar' => $candidate['name'],
-                                'scientific_name'    => $candidate['name'],
-                                'price_egp'          => 0,
-                            ]
-                        );
-                    }
+                    $recordsToInsert[] = [
+                        'commercial_name_ar' => $fullEnName,
+                        'commercial_name_en' => $fullEnName,
+                        'scientific_name'    => $scientific,
+                        'price_egp'          => 0,
+                        'created_at'         => $now,
+                        'updated_at'         => $now,
+                    ];
                 }
             }
         } catch (\Throwable $e) {
-            // في حال حدوث Timeout أو بطء من المصدر الخارجي، نسجل الخطأ بهدوء
-            // ولا نوقف الكود، بل يكمل البحث فوراً من قاعدة البيانات المحلية
-            Log::warning('Live Medicine Sync Timeout/Notice: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * معالجة ذكية للكلمات العربية (مثل: بنادول <-> بانادول، والهمزات)
-     */
-    protected function getArabicSearchVariants(string $query): array
-    {
-        $variants = [$query];
-
-        // توحيد الهمزات (أ، إ، آ -> ا)
-        $normalized = str_replace(['أ', 'إ', 'آ'], 'ا', $query);
-        $variants[] = $normalized;
-
-        // معالجة حالة "بنادول" و "بانادول" الشهيرة في الأدوية
-        if (str_contains($normalized, 'بنادول')) {
-            $variants[] = str_replace('بنادول', 'بانادول', $normalized);
-            $variants[] = 'Panadol';
-        } elseif (str_contains($normalized, 'بانادول')) {
-            $variants[] = str_replace('بانادول', 'بنادول', $normalized);
-            $variants[] = 'Panadol';
+            Log::warning('ClinicalTables API Error: ' . $e->getMessage());
         }
 
-        return array_unique($variants);
+        // المصدر الثاني (Fallback): OpenFDA API (لجلب الأسماء التجارية والمواد الفعالة الإضافية)
+        if (empty($recordsToInsert)) {
+            try {
+                $fdaResponse = Http::timeout(5)->get('https://api.fda.gov/drug/ndc.json', [
+                    'search' => "brand_name:{$query}*+OR+generic_name:{$query}*",
+                    'limit'  => 15,
+                ]);
+
+                if ($fdaResponse->successful()) {
+                    $results = $fdaResponse->json('results') ?? [];
+
+                    foreach ($results as $item) {
+                        $brandName   = $item['brand_name'] ?? $item['generic_name'] ?? null;
+                        $genericName = $item['generic_name'] ?? $brandName;
+                        $dosageForm  = $item['dosage_form'] ?? '';
+
+                        if ($brandName) {
+                            $fullBrandName = trim($brandName . ($dosageForm ? " ($dosageForm)" : ''));
+
+                            $recordsToInsert[] = [
+                                'commercial_name_ar' => $fullBrandName,
+                                'commercial_name_en' => $fullBrandName,
+                                'scientific_name'    => $genericName,
+                                'price_egp'          => 0,
+                                'created_at'         => $now,
+                                'updated_at'         => $now,
+                            ];
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('OpenFDA API Error: ' . $e->getMessage());
+            }
+        }
+
+        // حفظ النتائج الجديدة في جدول medicines
+        if (!empty($recordsToInsert)) {
+            try {
+                // إزالة أي تكرار في الأسماء قبل الإدخال
+                $uniqueRecords = collect($recordsToInsert)
+                    ->unique('commercial_name_en')
+                    ->values()
+                    ->all();
+
+                DB::table('medicines')->insertOrIgnore($uniqueRecords);
+            } catch (\Throwable $e) {
+                Log::error('Database Medicine Insert Error: ' . $e->getMessage());
+            }
+        }
     }
 }
