@@ -7,6 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DoctorProfile extends Model
 {
+    protected $fillable = [
+        'specialty',
+        'title',
+        'years_of_experience',
+        'bio',
+        'qualifications',
+        'experiences',
+    ];
     protected $casts = [
         'qualifications' => 'array',
         'experiences' => 'array',
