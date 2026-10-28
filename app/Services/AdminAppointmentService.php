@@ -25,7 +25,9 @@ class AdminAppointmentService
             $query->where('status', $request->string('status'));
         }
         if ($request->boolean('is_today')) {
-            $query->whereHas('timeSlot', fn ($q) => $q->whereDate('date', now()->toDateString()));
+            $today = now('Africa/Cairo')->toDateString();
+            $query->whereHas('timeSlot', fn ($q) => $q->whereDate('date', $today));
+
         } elseif ($request->filled('date')) {
             $query->whereHas('timeSlot', fn ($q) => $q->whereDate('date', $request->date('date')->toDateString()));
         }
