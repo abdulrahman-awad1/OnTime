@@ -16,7 +16,7 @@ class TimeSlotResource extends JsonResource
     {
         return [
             'id'         => $this->id,
-            'start_time' => $this->start_time,
+            'start_time' => str_replace(['AM', 'PM'], ['ص', 'م'], date('h:i A', strtotime($this->start_time))),            'date' => $this->date,
             ];
     }
 }
