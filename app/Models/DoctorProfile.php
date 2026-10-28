@@ -14,6 +14,7 @@ class DoctorProfile extends Model
         'bio',
         'qualifications',
         'experiences',
+        'photo_path'
     ];
     protected $casts = [
         'qualifications' => 'array',

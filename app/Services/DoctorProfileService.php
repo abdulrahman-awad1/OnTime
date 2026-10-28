@@ -33,8 +33,8 @@ class DoctorProfileService
             Storage::disk('public')->delete($profile->photo_path);
         }
 
-        $profile->update(['photo_path' => $photo->store('doctor-photos', 'public')]);
-
+        $profile->photo_path = $photo->store('doctor-photos', 'public');
+        $profile->save();
         return $profile->load('user:id,name');
     }
 }
