@@ -31,6 +31,9 @@ class MedicineController extends Controller
                     ->orWhere('scientific_name', 'like', "%{$q}%")
                     ->orWhere('commercial_name_ar', 'like', "%{$q}%");
             })
+            // أولوية الترتيب: الدواء الذي يبدأ اسمه بالكلمة يظهر أولاً في القائمة المنسدلة للدكتور
+            ->orderByRaw("CASE WHEN commercial_name_en LIKE ? THEN 0 ELSE 1 END", ["{$q}%"])
+            ->orderBy('commercial_name_en', 'asc')
             ->limit(15)
             ->get(['id', 'commercial_name_ar', 'commercial_name_en', 'scientific_name', 'price_egp']);
 
