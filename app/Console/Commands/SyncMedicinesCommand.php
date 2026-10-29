@@ -76,7 +76,7 @@ class SyncMedicinesCommand extends Command
                     'commercial_name_ar' => $nameEn,
                     'scientific_name'    => $scientific,
                     'price_egp'          => $price,
-                    'is_active'          => true,
+                    'is_active'          => 1,
                     'created_at'         => $now,
                     'updated_at'         => $now,
                 ];

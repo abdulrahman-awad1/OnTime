@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Medicine;
-use App\Services\EgyptianMedicineService;
 use App\trait\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
