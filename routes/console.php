@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::job(new CancelExpiredAppointments)->everyFiveMinutes();
+Schedule::command('medicines:sync')->weeklyOn(5, '03:00');

@@ -13,20 +13,26 @@ class MedicineController extends Controller
     use ApiResponse;
 
 
-    public function search(Request $request, EgyptianMedicineService $medicineService)
+    public function search(Request $request)
     {
         if ($request->user()->role !== 'doctor') {
             abort(403, 'غير مصرح لك');
         }
 
-        $q = $request->string('q')->toString();
+        $q = trim($request->string('q')->toString());
 
-        // استخدام mb_strlen بدلاً من strlen لدعم الحروف العربية بشكل صحيح
-        if (mb_strlen(trim($q)) < 2) {
+        if (mb_strlen($q) < 2) {
             return $this->returnData('medicines', []);
         }
 
-        $medicines = $medicineService->searchAndSync($q);
+        $medicines = Medicine::where('is_active', true)
+            ->where(function ($query) use ($q) {
+                $query->where('commercial_name_en', 'like', "%{$q}%")
+                    ->orWhere('scientific_name', 'like', "%{$q}%")
+                    ->orWhere('commercial_name_ar', 'like', "%{$q}%");
+            })
+            ->limit(15)
+            ->get(['id', 'commercial_name_ar', 'commercial_name_en', 'scientific_name', 'price_egp']);
 
         return $this->returnData('medicines', $medicines);
     }
