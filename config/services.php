@@ -44,4 +44,12 @@ return [
         'iframe_id_wallet' => env('PAYMOB_IFRAME_WALLET'),
     ],
 
+    'whatsapp' => [
+        'phone_id'      => env('WHATSAPP_PHONE_ID'),
+        'token'         => env('WHATSAPP_TOKEN'),
+        'version'       => env('WHATSAPP_VERSION', 'v21.0'),
+        'template_name' => env('WHATSAPP_TEMPLATE_NAME', 'otp_verification'),
+        'template_lang' => env('WHATSAPP_TEMPLATE_LANG', 'ar'),
+    ],
+
 ];

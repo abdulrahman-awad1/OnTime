@@ -12,6 +12,7 @@ class ProfileService
     {
         return DB::transaction(function () use ($user, $data) {
 
+
             $profile = $user->profile()->create([
                 'date_of_birth' => $data['date_of_birth'],
                 'gender' => $data['gender'],
@@ -19,6 +20,7 @@ class ProfileService
             ]);
 
             $user->update([
+                'name' => $data['name'],
                 'profile_completed' => true,
             ]);
 

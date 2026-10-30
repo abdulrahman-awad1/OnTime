@@ -23,6 +23,8 @@ class StoreProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'name' => 'required|string|max:255',
+
             'date_of_birth' => [
                 'required',
                 'date',
