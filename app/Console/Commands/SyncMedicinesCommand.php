@@ -14,11 +14,8 @@ class SyncMedicinesCommand extends Command
 
     public function handle(): int
     {
-        // زيادة الذاكرة والوقت مؤقتًا للعمليات الكبيرة
-        ini_set('memory_limit', '512M');
-        set_time_limit(300);
-
-        $this->info('بدء عملية مزامنة قاعدة بيانات الأدوية من ملف CSV...');
+        ini_set('memory_limit', '1024M');
+        set_time_limit(0);
 
         $localCsvPath = storage_path('app/medicines.csv');
 
@@ -27,51 +24,40 @@ class SyncMedicinesCommand extends Command
             return self::FAILURE;
         }
 
+        $this->info('جاري قراءة ملف الـ CSV...');
+
         DB::disableQueryLog();
         $now = now();
-        $activeNames = [];
         $chunk = [];
+        $totalRowsRead = 0;
+        $processedNames = [];
 
-        $this->info('جاري قراءة الملف وتحديث البيانات...');
-
-        if (($handle = fopen($localCsvPath, 'r')) !== FALSE) {
-            // قراءة سطر الهيدر (أسماء الأعمدة)
+        if (($handle = fopen($localCsvPath, 'r')) !== false) {
+            // تخطي السطر الأول (Header: Drugname, Price, Search Query, Date, ...)
             $header = fgetcsv($handle);
 
-            if (!$header) {
-                $this->error('ملف الـ CSV فارغ أو تالف.');
-                fclose($handle);
-                return self::FAILURE;
-            }
+            while (($row = fgetcsv($handle)) !== false) {
+                $totalRowsRead++;
 
-            // تنظيف أسماء الأعمدة من أي رموز مخفية (مثل BOM)
-            $header[0] = preg_replace('/[\x00-\x1F\x7F-\xFF]/', '', $header[0]);
-
-            while (($row = fgetcsv($handle)) !== FALSE) {
-                // ربط السطر بأسماء الأعمدة
-                if (count($header) !== count($row)) {
-                    continue;
-                }
-
-                $item = array_combine($header, $row);
-
-                $rawName = trim($item['Drugname'] ?? $item['commercial_name_en'] ?? '');
-                $form    = trim($item['Form'] ?? '');
+                // حسب صورة ملفك: العمود 0 هو Drugname، العمود 1 هو Price، العمود 6 هو Form، العمود 9 هو Category
+                $rawName = trim($row[0] ?? '');
 
                 if ($rawName === '') {
                     continue;
                 }
 
-                $nameEn = $form !== '' && !str_contains(strtolower($rawName), strtolower($form))
+                $price      = (float) ($row[1] ?? 0);
+                $form       = trim($row[6] ?? '');
+                $scientific = trim($row[9] ?? '');
+
+                // دمج الشكل الدوائي (Tablet/Capsule) مع الاسم لعدم ضياع التركيزات المختلفة لنفس الدواء
+                $nameEn = ($form !== '' && !str_contains(strtolower($rawName), strtolower($form)))
                     ? "{$rawName} ({$form})"
                     : $rawName;
 
-                $price      = (float) ($item['Price'] ?? 0);
-                $scientific = trim($item['Category'] ?? $item['scientific_name'] ?? '');
+                $processedNames[$nameEn] = true;
 
-                $activeNames[] = $nameEn;
-
-                $chunk[] = [
+                $chunk[$nameEn] = [
                     'commercial_name_en' => $nameEn,
                     'commercial_name_ar' => $nameEn,
                     'scientific_name'    => $scientific,
@@ -81,10 +67,10 @@ class SyncMedicinesCommand extends Command
                     'updated_at'         => $now,
                 ];
 
-                // إدخال كل 1000 سجل معاً لتوفير الرامات
+                // إدخال كل 1000 دواء فريد معاً
                 if (count($chunk) >= 1000) {
                     Medicine::upsert(
-                        $chunk,
+                        array_values($chunk),
                         ['commercial_name_en'],
                         ['scientific_name', 'price_egp', 'is_active', 'updated_at']
                     );
@@ -98,20 +84,16 @@ class SyncMedicinesCommand extends Command
         // إدخال المتبقي
         if (!empty($chunk)) {
             Medicine::upsert(
-                $chunk,
+                array_values($chunk),
                 ['commercial_name_en'],
                 ['scientific_name', 'price_egp', 'is_active', 'updated_at']
             );
         }
 
-        // إيقاف تفعيل الأدوية القديمة التي لم تعد موجودة في الملف
-        if (count($activeNames) > 0) {
-            Medicine::where('updated_at', '<', $now)
-                ->where('is_active', true)
-                ->update(['is_active' => false]);
-        }
+        $this->info("إجمالي السطور المقروءة من ملف CSV: {$totalRowsRead}");
+        $this->info("إجمالي الأدوية الفريدة المستخرجة من الملف: " . count($processedNames));
+        $this->info("إجمالي الأدوية في قاعدة البيانات الآن: " . Medicine::count());
 
-        $this->info('تمت المزامنة بنجاح! إجمالي الأدوية النشطة: ' . Medicine::where('is_active', true)->count());
         return self::SUCCESS;
     }
 }
