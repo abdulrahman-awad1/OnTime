@@ -52,12 +52,7 @@ class TimeSlot extends Model
         return $query->where('date', $date);
     }
 
-    protected function startTime(): Attribute
-    {
-        return Attribute::make(
-            get: fn ($value) => Carbon::parse($value)->locale('ar')->translatedFormat('h:i A'),
-        );
-    }
+
 
     protected function date(): Attribute
     {
