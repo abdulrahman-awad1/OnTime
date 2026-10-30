@@ -5,7 +5,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminLoginRequest;
 use App\Http\Requests\CheckLoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\StoreProfileRequest;
 use App\Http\Resources\AdminResource;
+use App\Http\Resources\ProfileResource;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\EmailVerification;
@@ -21,18 +23,23 @@ class AuthUserController extends Controller
 
     public function __construct(private AuthService $authService) {}
 
-    public function register(RegisterRequest $request)
+
+    public function register(StoreProfileRequest $request)
     {
+        $user = $request->user();
+
         $data = $request->validated();
 
-        $result = $this->authService->register($data);
+        $profile = $this->ProfileService->create(
+            $user,
+            $data
+        );
 
-        $responseData = [
-            'user'  => new UserResource($result['user']),
-            'token' => $result['token'],
-        ];
-
-        return $this->returnData('user', $responseData, 'User registered successfully');
+        return $this->returnData(
+            'profile',
+            new ProfileResource($profile),
+            'Patient profile created successfully'
+        );
     }
 
 

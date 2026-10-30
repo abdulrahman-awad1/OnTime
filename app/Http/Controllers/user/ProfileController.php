@@ -29,23 +29,7 @@ class ProfileController extends Controller
         );
     }
 
-    public function store(StoreProfileRequest $request)
-    {
-        $user = $request->user();
 
-        $data = $request->validated();
-
-        $profile = $this->ProfileService->create(
-            $user,
-            $data
-        );
-
-        return $this->returnData(
-            'profile',
-            new ProfileResource($profile),
-            'Patient profile created successfully'
-        );
-    }
 
     public function update(UpdateProfileRequest $request)
     {
