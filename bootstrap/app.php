@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => App\Http\Middleware\AdminMiddlware::class,
             'doctor' => App\Http\Middleware\DoctorMiddleware::class,
+            'profile.completed' => \App\Http\Middleware\EnsureProfileCompleted::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
