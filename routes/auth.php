@@ -24,7 +24,7 @@ Route::post('/auth/send-otp', [AuthUserController::class, 'sendOtp']);
 Route::post('/auth/verify-otp', [AuthUserController::class, 'verifyOtp']);
 
 // Auth - register للمريض بس، login موحّد للاتنين
-//Route::post('/register', [AuthUserController::class, 'register']);
+Route::post('/register', [AuthUserController::class, 'register']);
 Route::post('/login', [AuthUserController::class, 'login']);
 Route::post('/admin/login', [AuthUserController::class, 'Admin_login']);
 

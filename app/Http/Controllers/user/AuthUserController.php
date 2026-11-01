@@ -4,11 +4,13 @@ namespace App\Http\Controllers\user;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminLoginRequest;
+use App\Http\Requests\StoreProfileRequest;
 use App\Http\Resources\AdminResource;
 use App\Http\Resources\UserResource;
 use App\Services\AuthService;
 use App\trait\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 
 class AuthUserController extends Controller
@@ -143,6 +145,33 @@ class AuthUserController extends Controller
             'user'         => new AdminResource($result['user']),
             'access_token' => $result['token'],
         ], 'Login successful');
+    }
+
+    public function register(StoreProfileRequest $request)
+    {
+        $user = $request->user();
+
+        DB::transaction(function () use ($user, $request) {
+            $user->update([
+                'name'  => $request->name,
+            ]);
+
+            $user->profile()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'birth_date' => $request->birth_date,
+                    'gender'     => $request->gender,
+                    'address'    => $request->address,
+                ]
+            );
+        });
+
+        return response()->json([
+            'status'            => true,
+            'message'           => 'تم استكمال البيانات بنجاح',
+            'profile_completed' => true,
+            'data'              => new UserResource($user->load('profile')),
+        ]);
     }
 
     public function logout(Request $request)
