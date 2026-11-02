@@ -85,27 +85,6 @@ class AuthService
     /**
      * 3. استكمال بيانات المريض
      */
-    public function completePatientProfile(User $user, array $data): User
-    {
-        return DB::transaction(function () use ($user, $data) {
-            $user->update([
-                'name'              => $data['name'],
-                'email'             => $data['email'] ?? null,
-                'profile_completed' => true,
-            ]);
-
-            $user->profile()->updateOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'date_of_birth' => $data['date_of_birth'],
-                    'gender'        => $data['gender'],
-                    'address'       => $data['address'],
-                ]
-            );
-
-            return $user->load('profile');
-        });
-    }
 
     /**
      * 4. دخول الإدارة والأطباء والمساعدين
