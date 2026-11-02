@@ -31,9 +31,12 @@ class ProfileController extends Controller
         );
     }
 
-    public function store(User $user, array $data): User
+    public function store(CompleteProfileRequest $request)
     {
-        return DB::transaction(function () use ($user, $data) {
+        $user = $request->user();
+        $data = $request->validated();
+
+        $updatedUser = DB::transaction(function () use ($user, $data) {
             $user->update([
                 'name'              => $data['name'],
                 'profile_completed' => true,
@@ -44,12 +47,18 @@ class ProfileController extends Controller
                 [
                     'date_of_birth' => $data['date_of_birth'],
                     'gender'        => $data['gender'],
-                    'address'       => $data['address'],
+                    'address'       => $data['address'] ?? null,
                 ]
             );
 
             return $user->load('profile');
         });
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'تم استكمال الملف الشخصي بنجاح',
+            'data'    => $updatedUser, // أو new UserResource($updatedUser)
+        ]);
     }
 
 
