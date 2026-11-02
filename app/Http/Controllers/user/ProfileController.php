@@ -31,7 +31,7 @@ class ProfileController extends Controller
         );
     }
 
-    public function store(CompleteProfileRequest $request)
+    public function store(StoreProfileRequest $request)
     {
         $user = $request->user();
         $data = $request->validated();
