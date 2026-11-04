@@ -48,8 +48,10 @@ class AdminDashboardService
         ];
 
         // 4. إيرادات اليوم (المدفوعات التي تمت اليوم فعلياً في الخزنة/Paymob)
-        $todayRevenue = Payment::whereDate('created_at', $today)
-            ->where('status', 'paid')
+        $todayRevenue = Payment::where('status', 'paid')
+            ->whereHas('appointment.timeSlot', function ($query) use ($today) {
+                $query->whereDate('date', $today);
+            })
             ->sum('amount');
 
         return [
