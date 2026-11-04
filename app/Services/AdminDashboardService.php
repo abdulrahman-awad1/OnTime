@@ -45,6 +45,7 @@ class AdminDashboardService
             'in_progress' => $statusCounts->get('in_progress', 0),
             'completed'   => $statusCounts->get('completed', 0),
             'cancelled'   => $statusCounts->get('cancelled', 0),
+            'no_show'     => $statusCounts->get('no_show', 0),
         ];
 
         // 4. إيرادات اليوم (المدفوعات التي تمت اليوم فعلياً في الخزنة/Paymob)
