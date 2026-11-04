@@ -15,11 +15,18 @@ class AdminDashboardService
      */
     public function getTodayStats(): array
     {
-        $today = Carbon::today();
+        $today = Carbon::today()->toDateString();
 
-        $todayAppointmentsCount = Appointment::whereDate('created_at', $today)->count();
+        // استعلام أساسي واحد يفلتر المواعيد حسب تاريخ الـ timeSlot لليوم
+        $todayAppointmentsQuery = Appointment::whereHas('timeSlot', function ($query) use ($today) {
+            $query->whereDate('date', $today);
+        });
 
-        $unpaidAppointmentsCount = Appointment::whereDate('created_at', $today)
+        // 1. إجمالي مواعيد اليوم
+        $todayAppointmentsCount = (clone $todayAppointmentsQuery)->count();
+
+        // 2. مواعيد اليوم غير المدفوعة
+        $unpaidAppointmentsCount = (clone $todayAppointmentsQuery)
             ->where(function ($query) {
                 $query->where('payment_status', 'unpaid')
                     ->orWhereDoesntHave('payment', function ($q) {
@@ -27,19 +34,26 @@ class AdminDashboardService
                     });
             })->count();
 
+        // 3. تقسيم مواعيد اليوم حسب الحالة في استعلام واحد فقط بدلاً من 4 استعلامات
+        $statusCounts = (clone $todayAppointmentsQuery)
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $appointmentsByStatus = [
+            'confirmed'   => $statusCounts->get('confirmed', 0),
+            'in_progress' => $statusCounts->get('in_progress', 0),
+            'completed'   => $statusCounts->get('completed', 0),
+            'cancelled'   => $statusCounts->get('cancelled', 0),
+        ];
+
+        // 4. إيرادات اليوم (المدفوعات التي تمت اليوم فعلياً في الخزنة/Paymob)
         $todayRevenue = Payment::whereDate('created_at', $today)
             ->where('status', 'paid')
             ->sum('amount');
 
-        $appointmentsByStatus = [
-            'confirmed'   => Appointment::whereDate('created_at', $today)->where('status', 'confirmed')->count(),
-            'in_progress' => Appointment::whereDate('created_at', $today)->where('status', 'in_progress')->count(),
-            'completed'   => Appointment::whereDate('created_at', $today)->where('status', 'completed')->count(),
-            'cancelled'   => Appointment::whereDate('created_at', $today)->where('status', 'cancelled')->count(),
-        ];
-
         return [
-            'date'                       => $today->toDateString(),
+            'date'                      => $today,
             'today_revenue'             => (float) $todayRevenue,
             'today_appointments_count'  => $todayAppointmentsCount,
             'unpaid_appointments_count' => $unpaidAppointmentsCount,
