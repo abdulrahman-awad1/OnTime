@@ -7,27 +7,39 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsappService
 {
-    public function sendOtp(string $phone, string $otpCode): bool
+    public function sendOtp(string $phone, string $otpCode, string $userName = 'عميلنا العزيز'): bool
     {
-        $phoneId = config('services.whatsapp.phone_id');
-        $token   = config('services.whatsapp.token');
-        $version = config('services.whatsapp.version', 'v21.0');
+        $phoneId      = config('services.whatsapp.phone_id');
+        $token        = config('services.whatsapp.token');
+        $version      = config('services.whatsapp.version', 'v21.0');
+        $templateName = config('services.whatsapp.template_name', 'ontime_request_verify');
 
         if (empty($phoneId) || empty($token)) {
             Log::error('WhatsApp credentials are missing in configuration.');
             return false;
         }
 
-        $internationalPhone = '2' . $phone;
+        // تنسيق الرقم المصري ليصبح 2010xxxxxxxx حتى لو أرسله المستخدم بصفر أو بدون صفر
+        $internationalPhone = '20' . ltrim($phone, '0');
         $url = "https://graph.facebook.com/{$version}/{$phoneId}/messages";
 
-        // حالياً أثناء الاختبار يرسل نص مباشر (text)
         $payload = [
             'messaging_product' => 'whatsapp',
             'to'                => $internationalPhone,
-            'type'              => 'text',
-            'text'              => [
-                'body' => "مرحباً بك في منصة *OnTime* 🏥\nكود الدخول الخاص بك هو: *{$otpCode}*\nصالح لمدة 10 دقائق."
+            'type'              => 'template',
+            'template'          => [
+                'name'       => $templateName,
+                'language'   => ['code' => 'ar'],
+                'components' => [
+                    [
+                        'type'       => 'body',
+                        'parameters' => [
+                            ['type' => 'text', 'text' => $userName],        // {{1}} الاسم
+                            ['type' => 'text', 'text' => $phone],           // {{2}} رقم الهاتف
+                            ['type' => 'text', 'text' => $otpCode], // {{3}} كود التحقق
+                        ],
+                    ],
+                ],
             ],
         ];
 

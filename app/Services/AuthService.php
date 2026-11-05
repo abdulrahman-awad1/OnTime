@@ -29,7 +29,8 @@ class AuthService
 
         $otp = (new Otp)->generate($phone, 'numeric', 6, 10);
 
-        $sent = $this->whatsappService->sendOtp($phone, $otp->token);
+        $userName = !empty($existingUser?->name) ? $existingUser->name : 'عميلنا العزيز';
+        $sent = $this->whatsappService->sendOtp($phone, $otp->token, $userName);
 
         if (!$sent) {
             return ['error' => 'تعذر إرسال كود التحقق حالياً، يرجى المحاولة مرة أخرى.'];
