@@ -15,7 +15,14 @@ class MedicalRecord extends Model
         'diagnosis',
         'treatment',
         'notes',
+        'client_uuid',
+        'recorded_at',
     ];
+
+    protected function casts(): array
+    {
+        return ['recorded_at' => 'datetime'];
+    }
 
     public function appointment(): BelongsTo
     {

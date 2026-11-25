@@ -8,7 +8,12 @@ use Illuminate\Support\Facades\Storage;
 
 class MedicalAttachment extends Model
 {
-    protected $fillable = ['medical_record_id', 'patient_id', 'type', 'file_path', 'original_name'];
+    protected $fillable = ['medical_record_id', 'patient_id', 'type', 'file_path', 'original_name', 'client_uuid', 'recorded_at'];
+
+    protected function casts(): array
+    {
+        return ['recorded_at' => 'datetime'];
+    }
 
     public function medicalRecord(): BelongsTo
     {
