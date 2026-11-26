@@ -15,11 +15,25 @@ class MedicalRecord extends Model
         'diagnosis',
         'treatment',
         'notes',
+        'client_uuid',
+        'recorded_at',
+        'created_by',
     ];
+
+    protected function casts(): array
+    {
+        return ['recorded_at' => 'datetime'];
+    }
 
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    /** User (doctor) who wrote the row; null for rows created before tracking. */
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function patient(): BelongsTo

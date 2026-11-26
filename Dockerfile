@@ -11,6 +11,13 @@ RUN apt-get update && apt-get install -y \
     curl \
     && docker-php-ext-install pdo pdo_mysql gd
 
+# حدود رفع الملفات (الأشعة/التحاليل حتى 10MB حسب StoreMedicalAttachmentRequest)
+# الافتراضي في PHP هو 2M للملف و8M للطلب، وده بيرفض ملفات 3MB بـ 422.
+RUN { \
+      echo 'upload_max_filesize=10M'; \
+      echo 'post_max_size=12M'; \
+    } > /usr/local/etc/php/conf.d/uploads.ini
+
 # تثبيت Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
