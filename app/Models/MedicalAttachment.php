@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 
 class MedicalAttachment extends Model
 {
-    protected $fillable = ['medical_record_id', 'patient_id', 'type', 'file_path', 'original_name', 'client_uuid', 'recorded_at'];
+    protected $fillable = ['medical_record_id', 'patient_id', 'type', 'file_path', 'original_name', 'client_uuid', 'recorded_at', 'created_by'];
 
     protected function casts(): array
     {
@@ -18,6 +18,12 @@ class MedicalAttachment extends Model
     public function medicalRecord(): BelongsTo
     {
         return $this->belongsTo(MedicalRecord::class);
+    }
+
+    /** User (doctor) who wrote the row; null for rows created before tracking. */
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function patient(): BelongsTo

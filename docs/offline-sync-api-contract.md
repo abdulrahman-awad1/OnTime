@@ -24,7 +24,7 @@ Content-Type: application/json  ← multipart/form-data for attachments
 | Field | Type | Rule |
 |---|---|---|
 | `client_uuid` | UUID v4 (`crypto.randomUUID()`) | Optional. Generate **once** when the doctor saves, store it with the queued item, **reuse the same value on every retry**. |
-| `recorded_at` | ISO-8601 with offset, e.g. `2026-11-25T13:40:12+02:00` | Optional. The moment the doctor pressed save. Must be within the **last 7 days** and not more than **5 min in the future**. Server stores it in UTC. Omitted → server time. |
+| `recorded_at` | ISO-8601 with offset, e.g. `2026-11-25T13:40:12+02:00` | Optional. The moment the doctor pressed save. Must be within the **last 7 days**. Up to **1 day in the future** is accepted (device clock ahead) and stored as the server time. Server stores it in UTC. Omitted → server time. |
 
 Online requests may send the same fields — that's recommended, so a timed-out online save is also safe to retry.
 
@@ -38,7 +38,7 @@ Online requests may send the same fields — that's recommended, so a timed-out 
 | `403` | Not a doctor | Pause queue, show error |
 | `404` | Parent not found (see §3) | Parent not synced yet → retry later; if parent is synced and still 404 → dead-letter |
 | `409` `errNum:"E409"` | `client_uuid` already used under a different parent | Bug — dead-letter, never retry |
-| `413` | File too large for server | Dead-letter |
+| `413` | File too large for server (PHP `post_max_size` 12M / nginx `client_max_body_size 12m`) | Dead-letter |
 | `422` | Validation (incl. `recorded_at` too old) | Dead-letter, show to doctor to re-enter |
 | `429` / `5xx` / network error / timeout | Transient | Retry with exponential backoff (2s, 4s, 8s … max 5 min) + jitter |
 

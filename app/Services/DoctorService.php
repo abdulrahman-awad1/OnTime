@@ -70,6 +70,7 @@ class DoctorService
                 'notes' => $data['notes'] ?? null,
                 'client_uuid' => $uuid,
                 'recorded_at' => $this->recordedAt($data['recorded_at'] ?? null),
+                'created_by' => auth()->id(),
             ]);
         } catch (UniqueConstraintViolationException $e) {
             // Two retries raced: the other one won, return its row.
@@ -98,6 +99,7 @@ class DoctorService
                     'notes' => $notes,
                     'client_uuid' => $uuid,
                     'recorded_at' => $this->recordedAt($sync['recorded_at'] ?? null),
+                    'created_by' => auth()->id(),
                 ]);
 
                 foreach ($items as $item) {
@@ -144,6 +146,7 @@ class DoctorService
                 'original_name' => $file->getClientOriginalName(),
                 'client_uuid' => $uuid,
                 'recorded_at' => $this->recordedAt($sync['recorded_at'] ?? null),
+                'created_by' => auth()->id(),
             ]);
         } catch (UniqueConstraintViolationException $e) {
             Storage::disk('public')->delete($path); // the parallel request already stored its copy
@@ -218,10 +221,19 @@ class DoctorService
         return $found;
     }
 
-    /** Device time (any offset) normalized to UTC; defaults to now(). */
+    /**
+     * Device time (any offset) normalized to UTC; defaults to now().
+     * A device clock running ahead is clamped to the server time (never stored in the future).
+     */
     private function recordedAt(?string $value): Carbon
     {
-        return $value ? Carbon::parse($value)->utc() : now();
+        if (! $value) {
+            return now();
+        }
+
+        $recordedAt = Carbon::parse($value)->utc();
+
+        return $recordedAt->greaterThan(now()) ? now() : $recordedAt;
     }
 
     public function patientHistory(int $patientId): array
@@ -229,7 +241,9 @@ class DoctorService
         return [
             'medical_records' => MedicalRecord::where('patient_id', $patientId)
                 ->with(['prescriptions.items', 'attachments'])
-                ->latest()
+                // Offline records synced later still sort by when the doctor wrote them.
+                ->orderByRaw('COALESCE(recorded_at, created_at) DESC')
+                ->orderByDesc('id')
                 ->get(),
         ];
     }
